@@ -6,25 +6,34 @@ import black
 def convert_odoo_domain_to_python(domain):
     """Convert an Odoo domain expression to a Python expression."""
     operator_dict = {
-        "=": "==",
-        "!=": "!=",
-        ">": ">",
-        "<": "<",
-        ">=": ">=",
-        "<=": "<=",
-        "in": "in",
-        "not in": "not in",
-        "like": "in",
-        "ilike": "in",
-        "child_of": "in",
-        "&": "and",
-        "|": "or",
-        "!": "not",
+        '=': '==',
+        '!=': '!=',
+        '>': '>',
+        '<': '<',
+        '>=': '>=',
+        '<=': '<=',
+        'in': 'in',
+        'not in': 'not in',
+        'like': 'like',
+        'ilike': 'ilike',
+        '=like': '=like',
+        '=ilike': '=ilike',
+        'child_of': 'child_of',
+        '&': 'and',
+        '|': 'or',
+        '!': 'not'
     }
 
     def process_condition(condition):
         """Convert a condition tuple to a Python expression string."""
         field, operator, value = condition
+        if operator == '=?':
+            if value in (None, False):
+                return 'True'
+            else:
+                operator = '='
+        if isinstance(value, list):
+            value = ', '.join(map(str, value))
         return f"({field} {operator_dict[operator]} {value})"
 
     def process_subexpression(subexpression):
@@ -42,22 +51,16 @@ def convert_odoo_domain_to_python(domain):
         elif isinstance(element, list):
             stack.append(process_subexpression(element))
         elif element in operator_dict:
-            if element == "!":
+            if element == '!':
                 operand = stack.pop()
                 stack.append(f"{operator_dict[element]} {operand}")
             else:
-                operand1 = stack.pop()
-                operand2 = stack.pop()
-                stack.append(f"({operand1} {operator_dict[element]} {operand2})")
-
-    python_expression = stack[0]
-
-    # Format the Python expression with Black
-    formatted_python_expression = black.format_str(
-        python_expression, mode=black.FileMode()
-    )
-
-    return formatted_python_expression
+                operands = []
+                while len(stack) > 0 and isinstance(stack[-1], str):
+                    operands.append(stack.pop())
+                operands.reverse()
+                stack.append(f"({f' {operator_dict[element]} '.join(operands)})")
+    return stack[0]
     # return stack[0]
 
 
@@ -113,11 +116,12 @@ def convert_odoo_domain_to_pseudocode(domain):
                 operand = stack.pop()
                 stack.append(f"{operator_dict[element]} {operand}")
             else:
-                operand1 = stack.pop()
-                operand2 = stack.pop()
-                stack.append(f"({operand1}\n{operator_dict[element]}\n{operand2})")
+                operands = []
+                while len(stack) > 0 and isinstance(stack[-1], str):
+                    operands.append(stack.pop())
+                operands.reverse()
+                stack.append(f"\n{operator_dict[element]}\n".join(operands))
     return stack[0]
-
 
 font = ("Helvetica", 20)
 
