@@ -132,7 +132,7 @@ def convert_odoo_domain_to_python_gui():
         [
             sg.Text(
                 "Polish Notation to Python Expression Converter",
-                size=(20, 1),
+                size=(50, 1),
                 key="-text-",
                 font=font,
             )
