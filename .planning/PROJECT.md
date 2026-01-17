@@ -53,12 +53,20 @@ Domains with dynamic references (`user.id`, `company_ids`, field paths) must par
 - [ ] Apply field humanization to Python output
 - [ ] Maintain valid Python-like syntax while improving readability
 
+**Domain validation:**
+- [ ] Connect to Odoo instance via XML-RPC API
+- [ ] GUI settings panel for Odoo connection (URL, database, username, password)
+- [ ] Validate field existence on specified model
+- [ ] Validate operator compatibility for field type
+- [ ] Validate dotted path traversal (relations exist along the path)
+- [ ] Warn if value type doesn't match field type
+
 ### Out of Scope
 
 - Web interface — desktop GUI is sufficient for this use case
-- Domain validation against Odoo models — no connection to Odoo instance
 - Reverse conversion (pseudocode → domain) — one-way conversion only
 - Support for computed domains or Python code evaluation — static parsing only
+- Domain editing/fixing — read-only analysis, not an editor
 
 ## Context
 
@@ -69,6 +77,8 @@ Domains with dynamic references (`user.id`, `company_ids`, field paths) must par
 **Solution approach:** Replace `ast.literal_eval()` with a custom tokenizer/parser that treats variable references as tokens rather than attempting to evaluate them.
 
 **Target audience:** Mid-level Odoo users — good Odoo knowledge but not technical expertise. Output should read like natural language, not code.
+
+**Odoo instance for validation:** `/home/msb/PycharmProjects/odoo-dev/odoo18/` — Odoo 18 dev instance with XML-RPC on localhost:8069, admin/admin login.
 
 ## Constraints
 
@@ -87,4 +97,4 @@ Domains with dynamic references (`user.id`, `company_ids`, field paths) must par
 | Map system fields to UI labels | Matches what users see in Odoo interface | — Pending |
 
 ---
-*Last updated: 2026-01-17 after initialization*
+*Last updated: 2026-01-17 after requirements definition*
