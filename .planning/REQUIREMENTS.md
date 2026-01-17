@@ -68,32 +68,32 @@ Which phases cover which requirements. Updated by create-roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PARSE-01 | — | Pending |
-| PARSE-02 | — | Pending |
-| PARSE-03 | — | Pending |
-| FIELD-01 | — | Pending |
-| FIELD-02 | — | Pending |
-| FIELD-03 | — | Pending |
-| FIELD-04 | — | Pending |
-| ODOO-01 | — | Pending |
-| ODOO-02 | — | Pending |
-| VALUE-01 | — | Pending |
-| VALUE-02 | — | Pending |
-| VALUE-03 | — | Pending |
-| VALID-01 | — | Pending |
-| VALID-02 | — | Pending |
-| VALID-03 | — | Pending |
-| VALID-04 | — | Pending |
-| VALID-05 | — | Pending |
-| VALID-06 | — | Pending |
-| PYOUT-01 | — | Pending |
-| PYOUT-02 | — | Pending |
+| PARSE-01 | Phase 1 | Pending |
+| PARSE-02 | Phase 1 | Pending |
+| PARSE-03 | Phase 1 | Pending |
+| FIELD-01 | Phase 2 | Pending |
+| FIELD-02 | Phase 2 | Pending |
+| FIELD-03 | Phase 2 | Pending |
+| FIELD-04 | Phase 2 | Pending |
+| ODOO-01 | Phase 3 | Pending |
+| ODOO-02 | Phase 3 | Pending |
+| VALUE-01 | Phase 3 | Pending |
+| VALUE-02 | Phase 3 | Pending |
+| VALUE-03 | Phase 3 | Pending |
+| VALID-01 | Phase 5 | Pending |
+| VALID-02 | Phase 5 | Pending |
+| VALID-03 | Phase 5 | Pending |
+| VALID-04 | Phase 5 | Pending |
+| VALID-05 | Phase 5 | Pending |
+| VALID-06 | Phase 5 | Pending |
+| PYOUT-01 | Phase 4 | Pending |
+| PYOUT-02 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20 ⚠️ (awaiting roadmap)
+- Mapped to phases: 20
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-01-17*
-*Last updated: 2026-01-17 after initial definition*
+*Last updated: 2026-01-17 after roadmap creation*
