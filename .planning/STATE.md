@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-17)
 
 **Core value:** Domains with dynamic references must parse successfully and produce genuinely readable output that a non-developer Odoo user can understand.
-**Current focus:** Phase 3 — Odoo-Aware Output (Complete)
+**Current focus:** Phase 4 — Python Output Enhancement (Complete)
 
 ## Current Position
 
-Phase: 3 of 5 (Odoo-Aware Output)
+Phase: 4 of 5 (Python Output Enhancement)
 Plan: 1 of 1 in current phase
 Status: Phase complete
-Last activity: 2026-01-17 — Completed 03-01-PLAN.md
+Last activity: 2026-01-17 — Completed 04-01-PLAN.md
 
-Progress: ██████░░░░ 60%
+Progress: ████████░░ 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 3 min
-- Total execution time: 9 min
+- Total execution time: 12 min
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: ██████░░░░ 60%
 | 01-custom-parser | 1/1 | 4 min | 4 min |
 | 02-field-humanization | 1/1 | 2 min | 2 min |
 | 03-odoo-aware-output | 1/1 | 3 min | 3 min |
+| 04-python-output-enhancement | 1/1 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 2 min, 3 min
+- Last 5 plans: 4 min, 2 min, 3 min, 3 min
 - Trend: Consistent velocity
 
 ## Accumulated Context
@@ -48,8 +49,9 @@ Recent decisions affecting current work:
 - Possessive form with 's for dotted path segments
 - System fields use exact Odoo UI labels for familiarity
 - user.id becomes "current user" (most readable form)
-- False and None both render as "Not set"
+- False and None both render as "Not set" (pseudocode only)
 - Tautology patterns show descriptive text with record context
+- Python output uses underscores for Python-safe identifiers
 
 ### Pending Todos
 
@@ -62,5 +64,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-17
-Stopped at: Completed 03-01-PLAN.md
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None
