@@ -14,7 +14,7 @@ None
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Custom Parser** - Replace ast.literal_eval() with tokenizer handling dynamic references
+- [x] **Phase 1: Custom Parser** - Replace ast.literal_eval() with tokenizer handling dynamic references
 - [ ] **Phase 2: Field Humanization** - Convert technical field names to readable labels
 - [ ] **Phase 3: Odoo-Aware Output** - System field mappings and value humanization
 - [ ] **Phase 4: Python Output Enhancement** - Apply humanization to Python output format
@@ -30,7 +30,7 @@ None
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: TBD
+- [x] 01-01: Custom domain parser with DynamicRef (TDD)
 
 ### Phase 2: Field Humanization
 **Goal**: Convert snake_case field names to Title Case, strip _id/_ids suffixes, humanize dotted paths with possessive form
@@ -80,7 +80,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Custom Parser | 0/TBD | Not started | - |
+| 1. Custom Parser | 1/1 | Complete | 2026-01-17 |
 | 2. Field Humanization | 0/TBD | Not started | - |
 | 3. Odoo-Aware Output | 0/TBD | Not started | - |
 | 4. Python Output Enhancement | 0/TBD | Not started | - |
