@@ -32,8 +32,8 @@ class MalformedDomainError(Exception):
     pass
 
 
-# Common operator mappings for comparison operators
-COMPARISON_OPERATORS = {
+# Comparison operators for pseudocode (human-readable words)
+PSEUDOCODE_COMPARISON_OPERATORS = {
     '=': 'equals',
     '!=': "doesn't equal",
     '>': 'is greater than',
@@ -48,6 +48,24 @@ COMPARISON_OPERATORS = {
     '=ilike': 'matches pattern (case-insensitive)',
     'child_of': 'is child of',
     'parent_of': 'is parent of',
+}
+
+# Comparison operators for Python (Python syntax)
+PYTHON_COMPARISON_OPERATORS = {
+    '=': '==',
+    '!=': '!=',
+    '>': '>',
+    '<': '<',
+    '>=': '>=',
+    '<=': '<=',
+    'in': 'in',
+    'not in': 'not in',
+    'like': 'like',  # Odoo-specific, keep as-is
+    'ilike': 'ilike',  # Odoo-specific, keep as-is
+    '=like': '=like',  # Odoo-specific, keep as-is
+    '=ilike': '=ilike',  # Odoo-specific, keep as-is
+    'child_of': 'child_of',  # Odoo-specific, keep as-is
+    'parent_of': 'parent_of',  # Odoo-specific, keep as-is
 }
 
 # Logical operators for pseudocode (uppercase)
@@ -113,8 +131,13 @@ def _format_value(value: Any, output_format: OutputFormat) -> str:
         Formatted string representation of the value
     """
     if isinstance(value, DynamicRef):
-        humanized = humanize_dynamic_ref(value)
-        return to_readable_text(humanized)
+        if output_format == OutputFormat.PYTHON:
+            # Keep as Python variable reference
+            return value.name
+        else:
+            # Humanize for pseudocode
+            humanized = humanize_dynamic_ref(value)
+            return to_readable_text(humanized)
     elif isinstance(value, str):
         if output_format == OutputFormat.PSEUDOCODE:
             return f'"{value}"'
@@ -139,21 +162,27 @@ def _format_value(value: Any, output_format: OutputFormat) -> str:
         return str(value)
 
 
-def _humanize_field_name(field: Any) -> str:
-    """Humanize a field name, checking system labels first.
+def _format_field_name(field: Any, output_format: OutputFormat) -> str:
+    """Format a field name based on output format.
 
     Args:
         field: The field name (usually a string)
+        output_format: The output format (PSEUDOCODE or PYTHON)
 
     Returns:
-        Human-readable field label
+        Formatted field name
     """
-    if isinstance(field, str):
-        system_label = get_system_field_label(field)
-        if system_label:
-            return to_readable_text(system_label)
-        return to_readable_text(humanize_field(field))
-    return str(field)
+    if output_format == OutputFormat.PYTHON:
+        # Keep field name as-is with underscores for Python
+        return str(field)
+    else:
+        # Humanize for pseudocode
+        if isinstance(field, str):
+            system_label = get_system_field_label(field)
+            if system_label:
+                return to_readable_text(system_label)
+            return to_readable_text(humanize_field(field))
+        return str(field)
 
 
 def _process_condition(condition: tuple, output_format: OutputFormat) -> str:
@@ -189,11 +218,18 @@ def _process_condition(condition: tuple, output_format: OutputFormat) -> str:
         else:
             operator = '='
 
-    humanized_field = _humanize_field_name(field)
+    formatted_field = _format_field_name(field, output_format)
     formatted_value = _format_value(value, output_format)
-    op_str = COMPARISON_OPERATORS.get(operator, operator)
 
-    return f"({humanized_field} {op_str} {formatted_value})"
+    # Select comparison operators based on output format
+    comparison_ops = (
+        PSEUDOCODE_COMPARISON_OPERATORS
+        if output_format == OutputFormat.PSEUDOCODE
+        else PYTHON_COMPARISON_OPERATORS
+    )
+    op_str = comparison_ops.get(operator, operator)
+
+    return f"({formatted_field} {op_str} {formatted_value})"
 
 
 def _convert_domain(domain: list, output_format: OutputFormat) -> str:
@@ -318,13 +354,15 @@ def convert_odoo_domain_to_pseudocode(domain: list) -> str:
 
 
 def convert_odoo_domain_to_python(domain: list) -> str:
-    """Convert an Odoo domain expression to a Python expression.
+    """Convert an Odoo domain expression to a Python-like expression.
 
     Follows Odoo domain conventions (compatible with Odoo 16+):
     - '&' and '|' are BINARY operators (take exactly 2 operands)
     - '!' is a UNARY operator (takes exactly 1 operand)
     - Implicit '&' between adjacent conditions without explicit operators
-    - Supports all standard Odoo comparison operators
+    - Uses Python comparison operators (==, !=, >, <, in, not in, etc.)
+    - Field names retain underscore format (snake_case)
+    - Dynamic references shown as Python variables (e.g., user.id)
 
     Args:
         domain: The parsed Odoo domain (list of tuples and operators)
@@ -334,9 +372,12 @@ def convert_odoo_domain_to_python(domain: list) -> str:
 
     Examples:
         >>> convert_odoo_domain_to_python([('state', '=', 'active')])
-        "(State equals 'active')"
+        "(state == 'active')"
 
         >>> convert_odoo_domain_to_python([('active', '=', True)])
-        "(Active equals True)"
+        "(active == True)"
+
+        >>> convert_odoo_domain_to_python([('user_id', '=', DynamicRef('user.id'))])
+        "(user_id == user.id)"
     """
     return _convert_domain(domain, OutputFormat.PYTHON)

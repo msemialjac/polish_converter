@@ -10,8 +10,8 @@
 Polish Converter is a developer tool that converts Odoo domain expressions from Polish (prefix) notation to human-readable formats. It helps developers and business analysts understand complex domain filters without decoding nested logical operators manually.
 
 **Key Features:**
-1. **Pseudocode Output** - Human-readable business logic format
-2. **Python Expression Output** - Readable Python-style boolean expressions
+1. **Pseudocode Output** - Human-readable business logic format for non-technical users
+2. **Python Expression Output** - Python syntax with snake_case fields and standard operators (`==`, `!=`, `in`, etc.)
 3. **Dynamic Reference Support** - Handles `user.id`, `company_ids`, and other runtime references
 4. **Odoo Validation** - Validate domains against live Odoo instances
 5. **GUI & CLI** - Both graphical and command-line interfaces
@@ -27,13 +27,20 @@ Polish Converter is a developer tool that converts Odoo domain expressions from 
 - **Nested structures** - Handles deeply nested conditions
 - **All Odoo operators** - `=`, `!=`, `>`, `<`, `>=`, `<=`, `in`, `not in`, `like`, `ilike`, `=like`, `=ilike`, `child_of`, `parent_of`
 
-### Human-Readable Output
+### Human-Readable Output (Pseudocode Mode)
 
 - **Field humanization** - `privacy_visibility` → "Privacy Visibility"
 - **ID suffix stripping** - `company_id` → "Company", `user_ids` → "Users"
 - **Dotted path support** - `project_id.name` → "Project's Name"
 - **System field labels** - `create_uid` → "Created By", `write_date` → "Last Updated On"
 - **User reference humanization** - `user.id` → "current user", `user.company_ids` → "current user's Companies"
+
+### Python Expression Output
+
+- **Snake_case fields** - Field names kept as-is: `privacy_visibility`, `company_id`
+- **Python operators** - `=` → `==`, `!=` → `!=`, `>` → `>`, `in` → `in`
+- **Python variables** - Dynamic references as variables: `user.id`, `user.company_ids`
+- **Python literals** - `True`, `False`, `None` (not humanized)
 
 ### Value Formatting
 
@@ -68,7 +75,7 @@ polish_converter/
 └── cli.py               # Click-based CLI
 
 main.py                  # Backward-compatible entry point
-tests/                   # Test suite (127 tests)
+tests/                   # Test suite (128 tests)
 ```
 
 ### Dependencies
@@ -154,7 +161,7 @@ python -m polish_converter convert --python "[('state', '=', 'draft'), ('user_id
 
 Output:
 ```
-((State equals 'draft') and (User equals current user))
+((state == 'draft') and (user_id == user.id))
 ```
 
 **Read from file:**
@@ -203,7 +210,7 @@ from polish_converter import (
 # Parse a domain string
 domain = parse_domain("[('user_id', '=', user.id), ('state', 'in', ['draft', 'sent'])]")
 
-# Convert to pseudocode
+# Convert to pseudocode (human-readable for business analysts)
 pseudo = convert_odoo_domain_to_pseudocode(domain)
 print(pseudo)
 # Output:
@@ -211,11 +218,11 @@ print(pseudo)
 # AND
 # (State is in ["draft", "sent"])
 
-# Convert to Python expression
+# Convert to Python expression (developer-friendly syntax)
 python_expr = convert_odoo_domain_to_python(domain)
 print(python_expr)
 # Output:
-# ((User equals current user) and (State is in ['draft', 'sent']))
+# ((user_id == user.id) and (state in ['draft', 'sent']))
 
 # Check for dynamic references
 for item in domain:
@@ -279,33 +286,44 @@ Now you can validate domains against real Odoo models.
 
 | Odoo Operator | Pseudocode | Python |
 |---------------|------------|--------|
-| `=` | equals | equals |
-| `!=` | doesn't equal | doesn't equal |
-| `>` | is greater than | is greater than |
-| `<` | is less than | is less than |
-| `>=` | is at least | is at least |
-| `<=` | is at most | is at most |
-| `in` | is in | is in |
-| `not in` | is not in | is not in |
-| `like` | is like | is like |
-| `ilike` | is like (case-insensitive) | is like (case-insensitive) |
-| `child_of` | is child of | is child of |
-| `parent_of` | is parent of | is parent of |
-| `&` | AND | and |
-| `\|` | OR | or |
-| `!` | NOT | not |
+| `=` | equals | `==` |
+| `!=` | doesn't equal | `!=` |
+| `>` | is greater than | `>` |
+| `<` | is less than | `<` |
+| `>=` | is at least | `>=` |
+| `<=` | is at most | `<=` |
+| `in` | is in | `in` |
+| `not in` | is not in | `not in` |
+| `like` | is like | `like` |
+| `ilike` | is like (case-insensitive) | `ilike` |
+| `child_of` | is child of | `child_of` |
+| `parent_of` | is parent of | `parent_of` |
+| `&` | AND | `and` |
+| `\|` | OR | `or` |
+| `!` | NOT | `not` |
 
-### System Field Labels
+### Field Name Formatting
 
-| Technical Name | Display Label |
-|----------------|---------------|
-| `create_uid` | Created By |
-| `write_uid` | Last Updated By |
-| `create_date` | Created On |
-| `write_date` | Last Updated On |
-| `active` | Active |
-| `id` | ID |
-| `display_name` | Display Name |
+| Mode | Example Input | Output |
+|------|---------------|--------|
+| Pseudocode | `company_id` | Company |
+| Pseudocode | `user_ids` | Users |
+| Pseudocode | `project_id.name` | Project's Name |
+| Python | `company_id` | `company_id` |
+| Python | `user_ids` | `user_ids` |
+| Python | `project_id.name` | `project_id.name` |
+
+### System Field Labels (Pseudocode Only)
+
+| Technical Name | Pseudocode Display | Python Output |
+|----------------|-------------------|---------------|
+| `create_uid` | Created By | `create_uid` |
+| `write_uid` | Last Updated By | `write_uid` |
+| `create_date` | Created On | `create_date` |
+| `write_date` | Last Updated On | `write_date` |
+| `active` | Active | `active` |
+| `id` | ID | `id` |
+| `display_name` | Display Name | `display_name` |
 
 ---
 
@@ -344,6 +362,14 @@ The value `False` is displayed as "Not set" in pseudocode mode. Use `--python` f
 
 ## Changelog
 
+### Version 1.1.0
+
+- **Python output overhaul** - Python mode now uses true Python syntax:
+  - Field names kept as snake_case (e.g., `company_id` not "Company")
+  - Comparison operators use Python symbols (`==`, `!=`, `>`, `<`, `in`, `not in`)
+  - Dynamic references shown as Python variables (e.g., `user.id` not "current user")
+- **128 tests passing** - Updated test suite for new Python output format
+
 ### Version 1.0.0
 
 - **Package refactoring** - Modular architecture with separate modules
@@ -351,7 +377,7 @@ The value `False` is displayed as "Not set" in pseudocode mode. Use `--python` f
 - **Code deduplication** - Shared converter logic via `OutputFormat` enum
 - **Malformed domain handling** - Warnings for invalid operator usage
 - **Backward compatibility** - `main.py` re-exports all APIs
-- **127 tests passing** - Comprehensive test coverage
+- **Comprehensive test coverage**
 
 ### Initial Development
 

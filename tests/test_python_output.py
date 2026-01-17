@@ -1,8 +1,9 @@
-"""Tests for Python output humanization in Odoo domain converter.
+"""Tests for Python output in Odoo domain converter.
 
 These tests verify that convert_odoo_domain_to_python() correctly:
-- Applies field humanization with readable text (PYOUT-01)
-- Maintains readable Python-like syntax with humanized operators (PYOUT-02)
+- Keeps field names in snake_case (Python style)
+- Uses Python comparison operators (==, !=, >, <, in, not in, etc.)
+- Keeps dynamic references as Python variables (e.g., user.id)
 """
 
 import pytest
@@ -39,78 +40,75 @@ class TestToReadableText:
         assert to_readable_text("Last Updated On") == "Last Updated On"
 
 
-class TestPythonOutputSystemFields:
-    """Tests for system field humanization in Python output (PYOUT-01)."""
+class TestPythonOutputFieldNames:
+    """Tests for field names in Python output - kept as snake_case."""
 
     def test_create_uid_field(self):
-        """create_uid becomes Created By in Python output."""
+        """create_uid stays as create_uid in Python output."""
         domain = parse_domain("[('create_uid', '=', 1)]")
         result = convert_odoo_domain_to_python(domain)
-        assert "Created By" in result
-        assert "create_uid" not in result
+        assert "create_uid" in result
+        assert "Created By" not in result
 
     def test_write_date_field(self):
-        """write_date becomes Last Updated On in Python output."""
+        """write_date stays as write_date in Python output."""
         domain = parse_domain("[('write_date', '>', '2024-01-01')]")
         result = convert_odoo_domain_to_python(domain)
-        assert "Last Updated On" in result
-        assert "write_date" not in result
+        assert "write_date" in result
+        assert "Last Updated On" not in result
 
     def test_active_field(self):
-        """active field becomes Active in Python output."""
+        """active field stays as active in Python output."""
         domain = parse_domain("[('active', '=', True)]")
         result = convert_odoo_domain_to_python(domain)
-        assert "Active" in result
-        assert "(Active equals" in result
-
-
-class TestPythonOutputFieldHumanization:
-    """Tests for regular field humanization in Python output (PYOUT-01)."""
+        assert "active" in result
+        assert "(active ==" in result
 
     def test_company_id_field(self):
-        """company_id becomes Company in Python output."""
+        """company_id stays as company_id in Python output."""
         domain = parse_domain("[('company_id', '=', 1)]")
         result = convert_odoo_domain_to_python(domain)
-        assert "Company" in result
-        assert "company_id" not in result
+        assert "company_id" in result
+        assert "Company" not in result
 
     def test_user_ids_field(self):
-        """user_ids becomes Users in Python output."""
+        """user_ids stays as user_ids in Python output."""
         domain = parse_domain("[('user_ids', 'in', [1, 2])]")
         result = convert_odoo_domain_to_python(domain)
-        assert "Users" in result
-        assert "user_ids" not in result
+        assert "user_ids" in result
+        assert "Users" not in result
 
     def test_dotted_path_field(self):
-        """Dotted path becomes possessive form with spaces."""
+        """Dotted path stays as-is with underscores."""
         domain = parse_domain("[('project_id.name', '=', 'Test')]")
         result = convert_odoo_domain_to_python(domain)
-        assert "Project's Name" in result
-        assert "project_id.name" not in result
+        assert "project_id.name" in result
+        assert "Project's Name" not in result
 
 
 class TestPythonOutputDynamicRef:
-    """Tests for DynamicRef humanization in Python output (PYOUT-02)."""
+    """Tests for DynamicRef in Python output - kept as Python variables."""
 
     def test_user_id_ref(self):
-        """user.id becomes current user in Python output."""
+        """user.id stays as user.id in Python output."""
         domain = parse_domain("[('user_id', '=', user.id)]")
         result = convert_odoo_domain_to_python(domain)
-        assert "current user" in result
-        assert "user.id" not in result
+        assert "user.id" in result
+        assert "current user" not in result
 
     def test_user_company_ids_ref(self):
-        """user.company_ids becomes current user's Companies."""
+        """user.company_ids stays as Python variable."""
         domain = parse_domain("[('company_id', 'in', user.company_ids)]")
         result = convert_odoo_domain_to_python(domain)
-        assert "current user's Companies" in result
-        assert "user.company_ids" not in result
+        assert "user.company_ids" in result
+        assert "current user's Companies" not in result
 
     def test_user_partner_id_ref(self):
-        """user.partner_id.id becomes current user's Partner."""
+        """user.partner_id.id stays as Python variable."""
         domain = parse_domain("[('partner_id', '=', user.partner_id.id)]")
         result = convert_odoo_domain_to_python(domain)
-        assert "current user's Partner" in result
+        assert "user.partner_id.id" in result
+        assert "current user's Partner" not in result
 
 
 class TestPythonOutputValues:
@@ -138,36 +136,36 @@ class TestPythonOutputValues:
 
 
 class TestPythonOutputIntegration:
-    """Integration tests for complete Python output humanization."""
+    """Integration tests for complete Python output."""
 
     def test_create_uid_with_user_id(self):
         """Complete conversion: create_uid = user.id."""
         domain = parse_domain("[('create_uid', '=', user.id)]")
         result = convert_odoo_domain_to_python(domain)
-        assert result == "(Created By equals current user)"
+        assert result == "(create_uid == user.id)"
 
     def test_or_condition_with_refs(self):
         """OR condition with user references."""
         domain = parse_domain("['|', ('user_id', '=', user.id), ('company_id', 'in', user.company_ids)]")
         result = convert_odoo_domain_to_python(domain)
-        assert "User equals" in result
-        assert "current user" in result
-        assert "Company is in" in result
-        assert "current user's Companies" in result
+        assert "user_id ==" in result
+        assert "user.id" in result
+        assert "company_id in" in result
+        assert "user.company_ids" in result
         assert " or " in result
 
     def test_complex_dotted_path(self):
         """Dotted path with privacy_visibility."""
         domain = parse_domain("[('project_id.privacy_visibility', '=', 'followers')]")
         result = convert_odoo_domain_to_python(domain)
-        assert "Project's Privacy Visibility" in result
+        assert "project_id.privacy_visibility" in result
         assert "'followers'" in result
 
     def test_active_false(self):
-        """Active = False with readable output."""
+        """Active = False with Python output."""
         domain = parse_domain("[('active', '=', False)]")
         result = convert_odoo_domain_to_python(domain)
-        assert result == "(Active equals False)"
+        assert result == "(active == False)"
 
 
 class TestPythonOutputStructurePreserved:
@@ -199,78 +197,96 @@ class TestPythonOutputStructurePreserved:
         assert "not " in result
 
     def test_in_operator(self):
-        """'is in' operator used for readable output."""
+        """'in' operator used for Python output."""
         domain = parse_domain("[('company_id', 'in', [1, 2, 3])]")
         result = convert_odoo_domain_to_python(domain)
-        assert " is in " in result
+        assert " in " in result
         assert "[1, 2, 3]" in result
 
 
-class TestPythonOutputReadableOperators:
-    """Tests for readable operator output."""
+class TestPythonOutputOperators:
+    """Tests for Python comparison operators."""
 
     def test_equals_operator(self):
-        """= becomes 'equals'."""
+        """= becomes '=='."""
         domain = parse_domain("[('name', '=', 'Test')]")
         result = convert_odoo_domain_to_python(domain)
-        assert " equals " in result
+        assert " == " in result
+        assert "equals" not in result
 
     def test_not_equals_operator(self):
-        """!= becomes \"doesn't equal\"."""
+        """!= stays as '!='."""
         domain = parse_domain("[('name', '!=', 'Test')]")
         result = convert_odoo_domain_to_python(domain)
-        assert "doesn't equal" in result
+        assert " != " in result
+        assert "doesn't equal" not in result
 
     def test_greater_than_operator(self):
-        """> becomes 'is greater than'."""
+        """> stays as '>'."""
         domain = parse_domain("[('amount', '>', 100)]")
         result = convert_odoo_domain_to_python(domain)
-        assert "is greater than" in result
+        assert " > " in result
+        assert "is greater than" not in result
 
     def test_less_than_operator(self):
-        """< becomes 'is less than'."""
+        """< stays as '<'."""
         domain = parse_domain("[('amount', '<', 100)]")
         result = convert_odoo_domain_to_python(domain)
-        assert "is less than" in result
+        assert " < " in result
+        assert "is less than" not in result
 
     def test_greater_equal_operator(self):
-        """>= becomes 'is at least'."""
+        """>= stays as '>='."""
         domain = parse_domain("[('amount', '>=', 100)]")
         result = convert_odoo_domain_to_python(domain)
-        assert "is at least" in result
+        assert " >= " in result
+        assert "is at least" not in result
 
     def test_less_equal_operator(self):
-        """<= becomes 'is at most'."""
+        """<= stays as '<='."""
         domain = parse_domain("[('amount', '<=', 100)]")
         result = convert_odoo_domain_to_python(domain)
-        assert "is at most" in result
+        assert " <= " in result
+        assert "is at most" not in result
+
+    def test_in_operator(self):
+        """'in' stays as 'in'."""
+        domain = parse_domain("[('state', 'in', ['draft', 'cancel'])]")
+        result = convert_odoo_domain_to_python(domain)
+        assert " in " in result
+        assert "is in" not in result
 
     def test_not_in_operator(self):
-        """'not in' becomes 'is not in'."""
+        """'not in' stays as 'not in'."""
         domain = parse_domain("[('state', 'not in', ['draft', 'cancel'])]")
         result = convert_odoo_domain_to_python(domain)
-        assert "is not in" in result
+        assert " not in " in result
+        assert "is not in" not in result
 
     def test_like_operator(self):
-        """'like' becomes 'is like'."""
+        """'like' stays as 'like' (Odoo-specific)."""
         domain = parse_domain("[('name', 'like', '%test%')]")
         result = convert_odoo_domain_to_python(domain)
-        assert "is like" in result
+        assert " like " in result
+        assert "is like" not in result
 
     def test_ilike_operator(self):
-        """'ilike' becomes 'is like (case-insensitive)'."""
+        """'ilike' stays as 'ilike' (Odoo-specific)."""
         domain = parse_domain("[('name', 'ilike', '%test%')]")
         result = convert_odoo_domain_to_python(domain)
-        assert "is like (case-insensitive)" in result
+        assert " ilike " in result
+        assert "is like (case-insensitive)" not in result
 
     def test_child_of_operator(self):
-        """'child_of' becomes 'is child of'."""
+        """'child_of' stays as 'child_of' (Odoo-specific)."""
         domain = parse_domain("[('parent_id', 'child_of', 1)]")
         result = convert_odoo_domain_to_python(domain)
-        assert "is child of" in result
+        assert " child_of " in result
+        assert "is child of" not in result
 
     def test_parent_of_operator(self):
-        """'parent_of' becomes 'is parent of'."""
+        """'parent_of' stays as 'parent_of' (Odoo-specific)."""
         domain = parse_domain("[('id', 'parent_of', [1, 2])]")
         result = convert_odoo_domain_to_python(domain)
-        assert "is parent of" in result
+        assert " parent_of " in result
+        assert "is parent of" not in result
