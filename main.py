@@ -924,19 +924,20 @@ def humanize_field(field_name: str) -> str:
     return ' '.join(humanized_parts)
 
 
-def to_python_identifier(text: str) -> str:
-    """Convert humanized text to Python-safe identifier.
+def to_readable_text(text: str) -> str:
+    """Return humanized text as-is for readable output.
 
-    Replaces spaces with underscores while preserving apostrophes.
-    Example: "current user's Partner" -> "current_user's_Partner"
+    Previously converted spaces to underscores, but now we keep
+    the human-readable format with spaces for better readability.
+    Example: "current user's Partner" -> "current user's Partner"
 
     Args:
         text: Human-readable text with spaces
 
     Returns:
-        Python-safe identifier with underscores instead of spaces
+        The same text, preserving spaces for readability
     """
-    return text.replace(' ', '_')
+    return text
 
 
 def convert_odoo_domain_to_python(domain):
@@ -949,20 +950,20 @@ def convert_odoo_domain_to_python(domain):
     - Supports all standard Odoo comparison operators
     """
     operator_dict = {
-        '=': '==',
-        '!=': '!=',
-        '>': '>',
-        '<': '<',
-        '>=': '>=',
-        '<=': '<=',
-        'in': 'in',
-        'not in': 'not in',
-        'like': 'like',
-        'ilike': 'ilike',
-        '=like': '=like',
-        '=ilike': '=ilike',
-        'child_of': 'child_of',
-        'parent_of': 'parent_of',
+        '=': 'equals',
+        '!=': "doesn't equal",
+        '>': 'is greater than',
+        '<': 'is less than',
+        '>=': 'is at least',
+        '<=': 'is at most',
+        'in': 'is in',
+        'not in': 'is not in',
+        'like': 'is like',
+        'ilike': 'is like (case-insensitive)',
+        '=like': 'matches pattern',
+        '=ilike': 'matches pattern (case-insensitive)',
+        'child_of': 'is child of',
+        'parent_of': 'is parent of',
         '&': 'and',
         '|': 'or',
         '!': 'not'
@@ -975,7 +976,7 @@ def convert_odoo_domain_to_python(domain):
         if isinstance(value, DynamicRef):
             # Humanize and convert to Python-safe identifier
             humanized = humanize_dynamic_ref(value)
-            return to_python_identifier(humanized)
+            return to_readable_text(humanized)
         elif isinstance(value, str):
             return repr(value)
         elif isinstance(value, list):
@@ -1004,7 +1005,7 @@ def convert_odoo_domain_to_python(domain):
             system_label = get_system_field_label(field)
             humanized_field = system_label if system_label else humanize_field(field)
             # Convert to Python-safe identifier (spaces to underscores)
-            humanized_field = to_python_identifier(humanized_field)
+            humanized_field = to_readable_text(humanized_field)
         else:
             humanized_field = str(field)
 
