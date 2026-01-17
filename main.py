@@ -468,6 +468,117 @@ class OdooConnection:
         except Exception as e:
             return False, f"Error retrieving databases: {e}"
 
+    def get_fields(self, model_name: str) -> dict:
+        """Get field definitions for a model from Odoo.
+
+        Uses the fields_get() method on the model to retrieve field metadata.
+        Results are cached to avoid repeated API calls.
+
+        Args:
+            model_name: Technical name of the model (e.g., 'res.partner')
+
+        Returns:
+            Dict of field_name -> field_info, where field_info contains:
+            - type: Field type (char, many2one, etc.)
+            - relation: Target model for relational fields
+            - string: Human-readable field label
+
+        Raises:
+            RuntimeError: If not authenticated or API call fails
+        """
+        if not self.uid:
+            raise RuntimeError("Not authenticated. Call authenticate() first.")
+
+        # Check cache
+        if not hasattr(self, '_fields_cache'):
+            self._fields_cache = {}
+
+        if model_name in self._fields_cache:
+            return self._fields_cache[model_name]
+
+        try:
+            models = xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/object')
+            fields = models.execute_kw(
+                self.database, self.uid, self.password,
+                model_name, 'fields_get',
+                [],
+                {'attributes': ['type', 'relation', 'string']}
+            )
+            self._fields_cache[model_name] = fields
+            return fields
+        except xmlrpc.client.Fault as e:
+            if 'does not exist' in str(e.faultString).lower() or 'access' in str(e.faultString).lower():
+                raise RuntimeError(f"Model '{model_name}' not found or access denied")
+            raise RuntimeError(f"XML-RPC error: {e.faultString}")
+        except Exception as e:
+            raise RuntimeError(f"Error retrieving fields: {e}")
+
+    def validate_field(self, model_name: str, field_name: str) -> tuple[bool, dict | None, str | None]:
+        """Validate that a field exists on a model.
+
+        Args:
+            model_name: Technical name of the model (e.g., 'res.partner')
+            field_name: Name of the field to validate (e.g., 'name')
+
+        Returns:
+            Tuple of (valid, field_info, error):
+            - (True, field_info_dict, None) if field exists
+            - (False, None, error_message) if field doesn't exist or error
+        """
+        try:
+            fields = self.get_fields(model_name)
+            if field_name in fields:
+                return True, fields[field_name], None
+            return False, None, f"Field '{field_name}' does not exist on {model_name}"
+        except RuntimeError as e:
+            return False, None, str(e)
+
+    def validate_path(self, model_name: str, field_path: str) -> tuple[bool, dict | None, str | None]:
+        """Validate a dotted field path traversal.
+
+        Checks that each segment of the path exists and that intermediate
+        segments are relational fields that can be traversed.
+
+        Args:
+            model_name: Starting model name (e.g., 'res.partner')
+            field_path: Dotted path (e.g., 'company_id.name' or 'user_ids.partner_id.name')
+
+        Returns:
+            Tuple of (valid, field_info, error):
+            - (True, final_field_info, None) if path is valid
+            - (False, None, error_message) if any segment is invalid
+        """
+        segments = field_path.split('.')
+        current_model = model_name
+        relational_types = {'many2one', 'one2many', 'many2many'}
+
+        for i, segment in enumerate(segments):
+            is_last = (i == len(segments) - 1)
+
+            # Validate current segment exists
+            valid, field_info, error = self.validate_field(current_model, segment)
+            if not valid:
+                return False, None, error
+
+            if is_last:
+                # Final segment - just return its info
+                return True, field_info, None
+
+            # Not last segment - must be relational to traverse
+            field_type = field_info.get('type', '')
+            if field_type not in relational_types:
+                return False, None, f"Cannot traverse '{segment}' on {current_model} - not a relational field (type: {field_type})"
+
+            # Get the related model for next iteration
+            relation = field_info.get('relation')
+            if not relation:
+                return False, None, f"Field '{segment}' on {current_model} has no relation defined"
+
+            current_model = relation
+
+        # Should not reach here, but handle empty path
+        return False, None, "Empty field path"
+
 
 # System field labels for Odoo-aware output (ODOO-01)
 SYSTEM_FIELD_LABELS = {
