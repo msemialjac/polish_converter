@@ -1153,6 +1153,75 @@ def show_settings_window():
     window.close()
 
 
+def extract_fields_from_domain(domain: list) -> list[str]:
+    """Extract all field names/paths from a parsed domain.
+
+    Args:
+        domain: Parsed domain (list of tuples and operators)
+
+    Returns:
+        List of unique field names/paths referenced in the domain
+    """
+    fields = set()
+
+    for item in domain:
+        if isinstance(item, tuple) and len(item) >= 3:
+            field = item[0]
+            if isinstance(field, str):
+                fields.add(field)
+        elif isinstance(item, list):
+            # Nested domain
+            fields.update(extract_fields_from_domain(item))
+
+    return list(fields)
+
+
+def validate_domain_fields(model_name: str, domain: list) -> list[str]:
+    """Validate all fields in a domain against an Odoo model.
+
+    Args:
+        model_name: The Odoo model to validate against
+        domain: Parsed domain list
+
+    Returns:
+        List of warning/error messages (empty if all valid)
+    """
+    warnings = []
+
+    # Check if connection settings are configured
+    if not odoo_settings.get('url') or not odoo_settings.get('database'):
+        warnings.append("Connection not configured. Use Settings to configure Odoo connection.")
+        return warnings
+
+    # Create connection and authenticate
+    conn = OdooConnection(
+        odoo_settings['url'],
+        odoo_settings['database'],
+        odoo_settings['username'],
+        odoo_settings['password']
+    )
+
+    uid = conn.authenticate()
+    if not uid:
+        warnings.append("Authentication failed. Check credentials in Settings.")
+        return warnings
+
+    # Extract and validate all fields
+    fields = extract_fields_from_domain(domain)
+
+    for field in fields:
+        # Use validate_path for dotted paths, validate_field for simple fields
+        if '.' in field:
+            valid, info, error = conn.validate_path(model_name, field)
+        else:
+            valid, info, error = conn.validate_field(model_name, field)
+
+        if not valid:
+            warnings.append(f"Warning: {error}")
+
+    return warnings
+
+
 def convert_odoo_domain_to_python_gui():
     """A GUI for the convert_odoo_domain_to_python function."""
     layout = [
@@ -1164,11 +1233,14 @@ def convert_odoo_domain_to_python_gui():
                 font=font,
             )
         ],
+        [sg.Text("Model (for validation):", size=(20, 1)),
+         sg.Input(key="-MODEL-", size=(30, 1), tooltip="e.g., res.partner")],
         [sg.Multiline(size=(100, 10), key="-INPUT-")],
         [sg.Radio('Python Code', 'RADIO1', default=True, key='-RADIO_PY-'),
          sg.Radio('Pseudocode', 'RADIO1', key='-RADIO_PSEUDO-')],
-        [sg.Button("Convert"), sg.Button("Settings")],
+        [sg.Button("Convert"), sg.Button("Validate"), sg.Button("Settings")],
         [sg.Multiline(size=(100, 10), key="-OUTPUT-")],
+        [sg.Multiline(size=(100, 3), key="-VALIDATION-", text_color='orange', disabled=True)],
     ]
     window = sg.Window("Odoo Domain to Python Expression Converter", layout, font=font)
 
@@ -1187,10 +1259,32 @@ def convert_odoo_domain_to_python_gui():
                 else:
                     output = convert_odoo_domain_to_pseudocode(domain)
                 window['-OUTPUT-'].update(output)
-                # python_expression = convert_odoo_domain_to_python(domain)
-                # window["-OUTPUT-"].update(python_expression)
+                window['-VALIDATION-'].update('')  # Clear validation on convert
             except Exception as e:
                 window["-OUTPUT-"].update(str(e))
+                window['-VALIDATION-'].update('')
+        if event == "Validate":
+            model = values["-MODEL-"].strip()
+            domain_str = values["-INPUT-"].strip()
+
+            if not model:
+                window['-VALIDATION-'].update("Enter a model name to validate (e.g., res.partner)")
+                continue
+
+            if not domain_str:
+                window['-VALIDATION-'].update("Enter a domain to validate")
+                continue
+
+            try:
+                domain = parse_domain(domain_str)
+                warnings = validate_domain_fields(model, domain)
+
+                if warnings:
+                    window['-VALIDATION-'].update('\n'.join(warnings))
+                else:
+                    window['-VALIDATION-'].update("All fields valid!")
+            except Exception as e:
+                window['-VALIDATION-'].update(f"Parse error: {e}")
     window.close()
 
 
