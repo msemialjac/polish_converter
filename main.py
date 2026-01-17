@@ -362,6 +362,34 @@ def parse_domain(domain_str: str) -> list:
     return parser.parse()
 
 
+# System field labels for Odoo-aware output (ODOO-01)
+SYSTEM_FIELD_LABELS = {}
+
+
+def get_system_field_label(field_name: str) -> str | None:
+    """Get UI label for a system field.
+
+    Args:
+        field_name: The field name to check
+
+    Returns:
+        UI label if it's a system field, None otherwise
+    """
+    return SYSTEM_FIELD_LABELS.get(field_name)
+
+
+def humanize_dynamic_ref(ref: 'DynamicRef') -> str:
+    """Humanize a DynamicRef for pseudocode output.
+
+    Args:
+        ref: A DynamicRef object
+
+    Returns:
+        Human-readable string for the reference
+    """
+    return str(ref)
+
+
 def _humanize_segment(segment: str) -> str:
     """Humanize a single path segment.
 
