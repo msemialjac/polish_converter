@@ -676,6 +676,83 @@ class OdooConnection:
         expected_names = ', '.join(t.__name__ for t in expected_types)
         return False, f"Value type '{value_type_name}' may not match {field_type} field (expected: {expected_names})"
 
+    def validate_domain_condition(self, model_name: str, condition: tuple) -> list[tuple[str, str]]:
+        """Validate a single domain condition (field, operator, value).
+
+        Args:
+            model_name: The Odoo model to validate against
+            condition: A tuple of (field, operator, value)
+
+        Returns:
+            List of (level, message) tuples where level is 'error', 'warning', or 'info'
+        """
+        warnings = []
+
+        if not isinstance(condition, tuple) or len(condition) < 3:
+            return [('error', f"Invalid condition format: {condition}")]
+
+        field, operator, value = condition[:3]
+
+        # Skip non-string fields (e.g., tautology patterns like (1, '=', 1))
+        if not isinstance(field, str):
+            return []
+
+        # 1. Validate field exists and get field info
+        if '.' in field:
+            valid, field_info, error = self.validate_path(model_name, field)
+        else:
+            valid, field_info, error = self.validate_field(model_name, field)
+
+        if not valid:
+            warnings.append(('error', error))
+            return warnings  # Can't validate further without field info
+
+        # 2. Validate operator compatibility with field type
+        field_type = field_info.get('type', '')
+        if field_type:
+            op_valid, op_warning = self.validate_operator(field_type, operator)
+            if not op_valid:
+                warnings.append(('warning', f"Field '{field}': {op_warning}"))
+
+        # 3. Validate value type matches field type
+        if field_type:
+            val_valid, val_warning = self.validate_value_type(field_type, value)
+            if not val_valid:
+                warnings.append(('warning', f"Field '{field}': {val_warning}"))
+
+        return warnings
+
+    def validate_domain(self, model_name: str, domain: list) -> list[tuple[str, str]]:
+        """Validate an entire domain against an Odoo model.
+
+        Validates:
+        - Field existence
+        - Operator compatibility with field types
+        - Value type compatibility with field types
+        - Dotted path traversal
+
+        Args:
+            model_name: The Odoo model to validate against
+            domain: Parsed domain (list of tuples and operators)
+
+        Returns:
+            List of (level, message) tuples where level is 'error', 'warning', or 'info'
+        """
+        warnings = []
+
+        for item in domain:
+            if isinstance(item, tuple):
+                # Validate condition tuple
+                condition_warnings = self.validate_domain_condition(model_name, item)
+                warnings.extend(condition_warnings)
+            elif isinstance(item, list):
+                # Nested domain - recurse
+                nested_warnings = self.validate_domain(model_name, item)
+                warnings.extend(nested_warnings)
+            # Skip string operators ('&', '|', '!')
+
+        return warnings
+
 
 # System field labels for Odoo-aware output (ODOO-01)
 SYSTEM_FIELD_LABELS = {
@@ -1273,22 +1350,26 @@ def extract_fields_from_domain(domain: list) -> list[str]:
     return list(fields)
 
 
-def validate_domain_fields(model_name: str, domain: list) -> list[str]:
-    """Validate all fields in a domain against an Odoo model.
+def validate_domain_fields(model_name: str, domain: list) -> list[tuple[str, str]]:
+    """Validate all fields, operators, and values in a domain against an Odoo model.
+
+    Performs comprehensive validation including:
+    - Field existence on the model
+    - Operator compatibility with field types
+    - Value type matching with field types
+    - Dotted path traversal
 
     Args:
         model_name: The Odoo model to validate against
         domain: Parsed domain list
 
     Returns:
-        List of warning/error messages (empty if all valid)
+        List of (level, message) tuples where level is 'error', 'warning', or 'info'
+        Empty list if all validations pass.
     """
-    warnings = []
-
     # Check if connection settings are configured
     if not odoo_settings.get('url') or not odoo_settings.get('database'):
-        warnings.append("Connection not configured. Use Settings to configure Odoo connection.")
-        return warnings
+        return [('error', "Connection not configured. Use Settings to configure Odoo connection.")]
 
     # Create connection and authenticate
     conn = OdooConnection(
@@ -1300,23 +1381,10 @@ def validate_domain_fields(model_name: str, domain: list) -> list[str]:
 
     uid = conn.authenticate()
     if not uid:
-        warnings.append("Authentication failed. Check credentials in Settings.")
-        return warnings
+        return [('error', "Authentication failed. Check credentials in Settings.")]
 
-    # Extract and validate all fields
-    fields = extract_fields_from_domain(domain)
-
-    for field in fields:
-        # Use validate_path for dotted paths, validate_field for simple fields
-        if '.' in field:
-            valid, info, error = conn.validate_path(model_name, field)
-        else:
-            valid, info, error = conn.validate_field(model_name, field)
-
-        if not valid:
-            warnings.append(f"Warning: {error}")
-
-    return warnings
+    # Use comprehensive domain validation
+    return conn.validate_domain(model_name, domain)
 
 
 def convert_odoo_domain_to_python_gui():
@@ -1374,12 +1442,32 @@ def convert_odoo_domain_to_python_gui():
 
             try:
                 domain = parse_domain(domain_str)
-                warnings = validate_domain_fields(model, domain)
+                results = validate_domain_fields(model, domain)
 
-                if warnings:
-                    window['-VALIDATION-'].update('\n'.join(warnings))
+                if results:
+                    # Group by level and format output
+                    errors = [msg for level, msg in results if level == 'error']
+                    warnings = [msg for level, msg in results if level == 'warning']
+                    infos = [msg for level, msg in results if level == 'info']
+
+                    output_lines = []
+                    if errors:
+                        output_lines.append("ERRORS:")
+                        output_lines.extend(f"  {msg}" for msg in errors)
+                    if warnings:
+                        if output_lines:
+                            output_lines.append("")
+                        output_lines.append("WARNINGS:")
+                        output_lines.extend(f"  {msg}" for msg in warnings)
+                    if infos:
+                        if output_lines:
+                            output_lines.append("")
+                        output_lines.append("INFO:")
+                        output_lines.extend(f"  {msg}" for msg in infos)
+
+                    window['-VALIDATION-'].update('\n'.join(output_lines))
                 else:
-                    window['-VALIDATION-'].update("All fields valid!")
+                    window['-VALIDATION-'].update("All validations passed!")
             except Exception as e:
                 window['-VALIDATION-'].update(f"Parse error: {e}")
     window.close()
