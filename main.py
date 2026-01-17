@@ -1,7 +1,6 @@
 import FreeSimpleGUI as sg
 import ast
 import black
-import re
 from enum import Enum, auto
 from typing import Any
 
