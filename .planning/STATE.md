@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-17)
 ## Current Position
 
 Phase: 5 of 5 (Odoo Validation)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-01-17 — Completed 05-01-PLAN.md
+Last activity: 2026-01-17 — Completed 05-02-PLAN.md
 
-Progress: █████████░ 83%
+Progress: █████████░ 86%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: 3 min
-- Total execution time: 14 min
+- Total execution time: 16 min
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: █████████░ 83%
 | 02-field-humanization | 1/1 | 2 min | 2 min |
 | 03-odoo-aware-output | 1/1 | 3 min | 3 min |
 | 04-python-output-enhancement | 1/1 | 3 min | 3 min |
-| 05-odoo-validation | 1/3 | 2 min | 2 min |
+| 05-odoo-validation | 2/3 | 4 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 2 min, 3 min, 3 min, 2 min
+- Last 5 plans: 2 min, 3 min, 3 min, 2 min, 2 min
 - Trend: Consistent velocity
 
 ## Accumulated Context
@@ -55,6 +55,8 @@ Recent decisions affecting current work:
 - Python output uses underscores for Python-safe identifiers
 - Use Python's built-in xmlrpc.client for Odoo XML-RPC (no external deps)
 - Settings stored in module-level dict for session persistence
+- Cache fields_get results per model to avoid repeated API calls
+- Path validation checks relational types for traversal (many2one, one2many, many2many)
 
 ### Pending Todos
 
@@ -67,5 +69,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-17
-Stopped at: Completed 05-01-PLAN.md
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
