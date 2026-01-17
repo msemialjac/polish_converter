@@ -33,12 +33,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Domain Validation
 
-- [ ] **VALID-01**: Connect to Odoo instance via XML-RPC API
-- [ ] **VALID-02**: GUI settings panel for Odoo connection (URL, database, username, password)
-- [ ] **VALID-03**: Validate field existence on specified model
-- [ ] **VALID-04**: Validate operator compatibility for field type
-- [ ] **VALID-05**: Validate dotted path traversal (relations exist along the path)
-- [ ] **VALID-06**: Warn if value type doesn't match field type
+- [x] **VALID-01**: Connect to Odoo instance via XML-RPC API
+- [x] **VALID-02**: GUI settings panel for Odoo connection (URL, database, username, password)
+- [x] **VALID-03**: Validate field existence on specified model
+- [x] **VALID-04**: Validate operator compatibility for field type
+- [x] **VALID-05**: Validate dotted path traversal (relations exist along the path)
+- [x] **VALID-06**: Warn if value type doesn't match field type
 
 ### Python Output
 
@@ -80,12 +80,12 @@ Which phases cover which requirements. Updated by create-roadmap.
 | VALUE-01 | Phase 3 | Complete |
 | VALUE-02 | Phase 3 | Complete |
 | VALUE-03 | Phase 3 | Complete |
-| VALID-01 | Phase 5 | Pending |
-| VALID-02 | Phase 5 | Pending |
-| VALID-03 | Phase 5 | Pending |
-| VALID-04 | Phase 5 | Pending |
-| VALID-05 | Phase 5 | Pending |
-| VALID-06 | Phase 5 | Pending |
+| VALID-01 | Phase 5 | Complete |
+| VALID-02 | Phase 5 | Complete |
+| VALID-03 | Phase 5 | Complete |
+| VALID-04 | Phase 5 | Complete |
+| VALID-05 | Phase 5 | Complete |
+| VALID-06 | Phase 5 | Complete |
 | PYOUT-01 | Phase 4 | Complete |
 | PYOUT-02 | Phase 4 | Complete |
 
