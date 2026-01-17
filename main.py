@@ -532,6 +532,16 @@ def humanize_field(field_name: str) -> str:
     return ' '.join(humanized_parts)
 
 
+def to_python_identifier(text: str) -> str:
+    """Convert humanized text to Python-safe identifier.
+
+    Replaces spaces with underscores.
+    Example: "current user's Partner" -> "current_user's_Partner"
+    """
+    # TODO: Implement
+    return text
+
+
 def convert_odoo_domain_to_python(domain):
     """Convert an Odoo domain expression to a Python expression.
 
