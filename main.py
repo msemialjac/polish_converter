@@ -535,11 +535,16 @@ def humanize_field(field_name: str) -> str:
 def to_python_identifier(text: str) -> str:
     """Convert humanized text to Python-safe identifier.
 
-    Replaces spaces with underscores.
+    Replaces spaces with underscores while preserving apostrophes.
     Example: "current user's Partner" -> "current_user's_Partner"
+
+    Args:
+        text: Human-readable text with spaces
+
+    Returns:
+        Python-safe identifier with underscores instead of spaces
     """
-    # TODO: Implement
-    return text
+    return text.replace(' ', '_')
 
 
 def convert_odoo_domain_to_python(domain):
@@ -574,9 +579,11 @@ def convert_odoo_domain_to_python(domain):
     logical_operators = {'&', '|', '!'}
 
     def format_value(value):
-        """Format a value for Python expression output."""
+        """Format a value for Python expression output with humanization."""
         if isinstance(value, DynamicRef):
-            return str(value)  # Dynamic references output as-is
+            # Humanize and convert to Python-safe identifier
+            humanized = humanize_dynamic_ref(value)
+            return to_python_identifier(humanized)
         elif isinstance(value, str):
             return repr(value)
         elif isinstance(value, list):
@@ -592,16 +599,26 @@ def convert_odoo_domain_to_python(domain):
             return str(value)
 
     def process_condition(condition):
-        """Convert a condition tuple to a Python expression string."""
+        """Convert a condition tuple to a Python expression string with humanization."""
         field, operator, value = condition
         if operator == '=?':
             if value in (None, False):
                 return 'True'
             else:
                 operator = '='
+
+        # Humanize field: check system field labels first, fall back to humanize_field
+        if isinstance(field, str):
+            system_label = get_system_field_label(field)
+            humanized_field = system_label if system_label else humanize_field(field)
+            # Convert to Python-safe identifier (spaces to underscores)
+            humanized_field = to_python_identifier(humanized_field)
+        else:
+            humanized_field = str(field)
+
         formatted_value = format_value(value)
         op_str = operator_dict.get(operator, operator)
-        return f"({field} {op_str} {formatted_value})"
+        return f"({humanized_field} {op_str} {formatted_value})"
 
     def process_subexpression(subexpression):
         """Convert a subexpression list to a Python expression string."""

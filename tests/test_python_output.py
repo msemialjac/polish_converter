@@ -154,7 +154,7 @@ class TestPythonOutputIntegration:
 
     def test_or_condition_with_refs(self):
         """OR condition with user references."""
-        domain = parse_domain("[('|', ('user_id', '=', user.id), ('company_id', 'in', user.company_ids))]")
+        domain = parse_domain("['|', ('user_id', '=', user.id), ('company_id', 'in', user.company_ids)]")
         result = convert_odoo_domain_to_python(domain)
         assert "User ==" in result
         assert "current_user" in result
@@ -194,13 +194,13 @@ class TestPythonOutputStructurePreserved:
 
     def test_or_operator(self):
         """'or' operator preserved."""
-        domain = parse_domain("[('|', ('active', '=', True), ('company_id', '=', 1))]")
+        domain = parse_domain("['|', ('active', '=', True), ('company_id', '=', 1)]")
         result = convert_odoo_domain_to_python(domain)
         assert " or " in result
 
     def test_not_operator(self):
         """'not' operator preserved."""
-        domain = parse_domain("[('!', ('active', '=', True))]")
+        domain = parse_domain("['!', ('active', '=', True)]")
         result = convert_odoo_domain_to_python(domain)
         assert "not " in result
 
