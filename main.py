@@ -377,6 +377,38 @@ class OdooConnection:
         uid: User ID after successful authentication (None until authenticated)
     """
 
+    # Mapping of field types to compatible operators (VALID-04)
+    FIELD_TYPE_OPERATORS = {
+        'char': {'=', '!=', 'like', 'ilike', '=like', '=ilike', 'in', 'not in'},
+        'text': {'=', '!=', 'like', 'ilike', '=like', '=ilike', 'in', 'not in'},
+        'integer': {'=', '!=', '>', '<', '>=', '<=', 'in', 'not in'},
+        'float': {'=', '!=', '>', '<', '>=', '<=', 'in', 'not in'},
+        'monetary': {'=', '!=', '>', '<', '>=', '<=', 'in', 'not in'},
+        'boolean': {'=', '!='},
+        'date': {'=', '!=', '>', '<', '>=', '<='},
+        'datetime': {'=', '!=', '>', '<', '>=', '<='},
+        'many2one': {'=', '!=', 'in', 'not in', 'child_of', 'parent_of'},
+        'one2many': {'in', 'not in', 'child_of', 'parent_of'},
+        'many2many': {'in', 'not in', 'child_of', 'parent_of'},
+        'selection': {'=', '!=', 'in', 'not in'},
+    }
+
+    # Mapping of field types to expected Python value types (VALID-06)
+    FIELD_TYPE_VALUES = {
+        'char': (str,),
+        'text': (str,),
+        'integer': (int,),
+        'float': (int, float),
+        'monetary': (int, float),
+        'boolean': (bool,),
+        'date': (str,),  # Format validated separately
+        'datetime': (str,),  # Format validated separately
+        'many2one': (int, bool, type(None)),  # ID or False/None
+        'one2many': (list,),
+        'many2many': (list,),
+        'selection': (str,),
+    }
+
     def __init__(self, url: str, database: str, username: str, password: str):
         """Initialize OdooConnection with connection parameters.
 
@@ -578,6 +610,71 @@ class OdooConnection:
 
         # Should not reach here, but handle empty path
         return False, None, "Empty field path"
+
+    @classmethod
+    def validate_operator(cls, field_type: str, operator: str) -> tuple[bool, str | None]:
+        """Validate if an operator is compatible with a field type.
+
+        Args:
+            field_type: The Odoo field type (e.g., 'char', 'integer', 'many2one')
+            operator: The comparison operator (e.g., '=', 'like', '>')
+
+        Returns:
+            Tuple of (valid, warning):
+            - (True, None) if operator is compatible with field type
+            - (False, warning_message) if operator may not work correctly
+        """
+        allowed_operators = cls.FIELD_TYPE_OPERATORS.get(field_type)
+
+        # Unknown field type - can't validate, assume ok
+        if allowed_operators is None:
+            return True, None
+
+        if operator in allowed_operators:
+            return True, None
+
+        return False, f"Operator '{operator}' may not work correctly with {field_type} fields"
+
+    @classmethod
+    def validate_value_type(cls, field_type: str, value: Any) -> tuple[bool, str | None]:
+        """Validate if a value type matches the expected types for a field type.
+
+        Args:
+            field_type: The Odoo field type (e.g., 'char', 'integer', 'many2one')
+            value: The value to validate
+
+        Returns:
+            Tuple of (valid, warning):
+            - (True, None) if value type matches expected types
+            - (False, warning_message) if value type may not match field type
+        """
+        # Skip validation for DynamicRef (can't validate at parse time)
+        if isinstance(value, DynamicRef):
+            return True, None
+
+        # For 'in' / 'not in' operators, value should be a list - validate list contents
+        if isinstance(value, list):
+            # Validate each item in the list
+            for item in value:
+                if isinstance(item, DynamicRef):
+                    continue  # Skip dynamic refs
+                valid, warning = cls.validate_value_type(field_type, item)
+                if not valid:
+                    return False, f"List contains value with incompatible type: {warning}"
+            return True, None
+
+        expected_types = cls.FIELD_TYPE_VALUES.get(field_type)
+
+        # Unknown field type - can't validate, assume ok
+        if expected_types is None:
+            return True, None
+
+        if isinstance(value, expected_types):
+            return True, None
+
+        value_type_name = type(value).__name__
+        expected_names = ', '.join(t.__name__ for t in expected_types)
+        return False, f"Value type '{value_type_name}' may not match {field_type} field (expected: {expected_names})"
 
 
 # System field labels for Odoo-aware output (ODOO-01)
