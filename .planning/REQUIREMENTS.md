@@ -15,10 +15,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Field Humanization
 
-- [ ] **FIELD-01**: Field names convert from snake_case to Title Case (`privacy_visibility` → "Privacy Visibility")
-- [ ] **FIELD-02**: Field names strip `_id` suffix (`company_id` → "Company")
-- [ ] **FIELD-03**: Field names strip `_ids` suffix (`group_ids` → "Groups")
-- [ ] **FIELD-04**: Dotted paths humanize with possessive form (`project_id.privacy_visibility` → "Project's Privacy Visibility")
+- [x] **FIELD-01**: Field names convert from snake_case to Title Case (`privacy_visibility` → "Privacy Visibility")
+- [x] **FIELD-02**: Field names strip `_id` suffix (`company_id` → "Company")
+- [x] **FIELD-03**: Field names strip `_ids` suffix (`group_ids` → "Groups")
+- [x] **FIELD-04**: Dotted paths humanize with possessive form (`project_id.privacy_visibility` → "Project's Privacy Visibility")
 
 ### Odoo-Aware Mappings
 
@@ -71,10 +71,10 @@ Which phases cover which requirements. Updated by create-roadmap.
 | PARSE-01 | Phase 1 | Complete |
 | PARSE-02 | Phase 1 | Complete |
 | PARSE-03 | Phase 1 | Complete |
-| FIELD-01 | Phase 2 | Pending |
-| FIELD-02 | Phase 2 | Pending |
-| FIELD-03 | Phase 2 | Pending |
-| FIELD-04 | Phase 2 | Pending |
+| FIELD-01 | Phase 2 | Complete |
+| FIELD-02 | Phase 2 | Complete |
+| FIELD-03 | Phase 2 | Complete |
+| FIELD-04 | Phase 2 | Complete |
 | ODOO-01 | Phase 3 | Pending |
 | ODOO-02 | Phase 3 | Pending |
 | VALUE-01 | Phase 3 | Pending |
