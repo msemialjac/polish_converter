@@ -12,5 +12,5 @@ mypy-extensions==1.0.0
 packaging==23.1
 pathspec==0.11.1
 platformdirs==3.9.1
-PySimpleGUI==4.60.5
+FreeSimpleGUI>=5.0.0
 yarl==1.9.2
