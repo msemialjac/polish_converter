@@ -42,8 +42,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Python Output
 
-- [ ] **PYOUT-01**: Python output applies field humanization
-- [ ] **PYOUT-02**: Python output maintains readable syntax while being Python-like
+- [x] **PYOUT-01**: Python output applies field humanization
+- [x] **PYOUT-02**: Python output maintains readable syntax while being Python-like
 
 ## v2 Requirements
 
@@ -86,8 +86,8 @@ Which phases cover which requirements. Updated by create-roadmap.
 | VALID-04 | Phase 5 | Pending |
 | VALID-05 | Phase 5 | Pending |
 | VALID-06 | Phase 5 | Pending |
-| PYOUT-01 | Phase 4 | Pending |
-| PYOUT-02 | Phase 4 | Pending |
+| PYOUT-01 | Phase 4 | Complete |
+| PYOUT-02 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 20 total
