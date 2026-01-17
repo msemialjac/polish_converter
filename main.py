@@ -920,6 +920,127 @@ def convert_odoo_domain_to_pseudocode(domain):
 
 font = ("Helvetica", 20)
 
+# Global settings for Odoo connection (persists during session)
+odoo_settings = {
+    'url': 'http://localhost:8069',
+    'database': '',
+    'username': 'admin',
+    'password': 'admin',
+}
+
+
+def show_settings_window():
+    """Show a modal window for configuring Odoo connection settings.
+
+    Provides fields for URL, database, username, and password. Includes
+    a Test Connection button to verify the configuration works.
+
+    The settings are stored in the global odoo_settings dict.
+    """
+    # Try to get databases from the server
+    databases = []
+    success, result = OdooConnection.get_databases(odoo_settings['url'])
+    if success:
+        databases = result
+
+    # Use dropdown if databases available, otherwise text input
+    if databases:
+        db_element = sg.Combo(
+            databases,
+            default_value=odoo_settings['database'] if odoo_settings['database'] in databases else (databases[0] if databases else ''),
+            key='-DB-',
+            size=(40, 1),
+            readonly=True
+        )
+    else:
+        db_element = sg.Input(
+            default_text=odoo_settings['database'],
+            key='-DB-',
+            size=(42, 1)
+        )
+
+    layout = [
+        [sg.Text("Odoo Connection Settings", font=("Helvetica", 24))],
+        [sg.Text("")],  # Spacer
+        [sg.Text("URL:", size=(10, 1)), sg.Input(default_text=odoo_settings['url'], key='-URL-', size=(42, 1))],
+        [sg.Text("Database:", size=(10, 1)), db_element],
+        [sg.Text("Username:", size=(10, 1)), sg.Input(default_text=odoo_settings['username'], key='-USER-', size=(42, 1))],
+        [sg.Text("Password:", size=(10, 1)), sg.Input(default_text=odoo_settings['password'], key='-PASS-', size=(42, 1), password_char='*')],
+        [sg.Text("")],  # Spacer
+        [sg.Button("Refresh Databases"), sg.Button("Test Connection")],
+        [sg.Text("", key='-STATUS-', size=(50, 2), text_color='gray')],
+        [sg.Text("")],  # Spacer
+        [sg.Button("Save"), sg.Button("Cancel")],
+    ]
+
+    window = sg.Window(
+        "Settings",
+        layout,
+        font=font,
+        modal=True,
+        finalize=True
+    )
+
+    while True:
+        event, values = window.read()
+
+        if event in (sg.WINDOW_CLOSED, "Cancel"):
+            break
+
+        if event == "Refresh Databases":
+            url = values['-URL-']
+            window['-STATUS-'].update("Fetching databases...", text_color='gray')
+            window.refresh()
+
+            success, result = OdooConnection.get_databases(url)
+            if success:
+                databases = result
+                # Update the database dropdown/input
+                if databases:
+                    window['-STATUS-'].update(f"Found {len(databases)} database(s)", text_color='green')
+                    # Replace database element with combo
+                    # Note: FreeSimpleGUI doesn't support dynamic element replacement,
+                    # so we update the combo values if it's already a combo
+                    if isinstance(window['-DB-'], sg.Combo):
+                        window['-DB-'].update(values=databases, value=databases[0])
+                else:
+                    window['-STATUS-'].update("No databases found", text_color='orange')
+            else:
+                window['-STATUS-'].update(f"Error: {result}", text_color='red')
+
+        if event == "Test Connection":
+            url = values['-URL-']
+            db = values['-DB-']
+            username = values['-USER-']
+            password = values['-PASS-']
+
+            window['-STATUS-'].update("Testing connection...", text_color='gray')
+            window.refresh()
+
+            conn = OdooConnection(url, db, username, password)
+
+            # Test basic connectivity
+            success, msg = conn.test_connection()
+            if not success:
+                window['-STATUS-'].update(f"Connection failed: {msg}", text_color='red')
+                continue
+
+            # Test authentication
+            uid = conn.authenticate()
+            if uid:
+                window['-STATUS-'].update(f"Connected! (User ID: {uid})\n{msg}", text_color='green')
+            else:
+                window['-STATUS-'].update(f"Server reachable but authentication failed.\n{msg}", text_color='orange')
+
+        if event == "Save":
+            odoo_settings['url'] = values['-URL-']
+            odoo_settings['database'] = values['-DB-']
+            odoo_settings['username'] = values['-USER-']
+            odoo_settings['password'] = values['-PASS-']
+            break
+
+    window.close()
+
 
 def convert_odoo_domain_to_python_gui():
     """A GUI for the convert_odoo_domain_to_python function."""
@@ -935,7 +1056,7 @@ def convert_odoo_domain_to_python_gui():
         [sg.Multiline(size=(100, 10), key="-INPUT-")],
         [sg.Radio('Python Code', 'RADIO1', default=True, key='-RADIO_PY-'),
          sg.Radio('Pseudocode', 'RADIO1', key='-RADIO_PSEUDO-')],
-        [sg.Button("Convert")],
+        [sg.Button("Convert"), sg.Button("Settings")],
         [sg.Multiline(size=(100, 10), key="-OUTPUT-")],
     ]
     window = sg.Window("Odoo Domain to Python Expression Converter", layout, font=font)
@@ -944,6 +1065,8 @@ def convert_odoo_domain_to_python_gui():
         event, values = window.read()
         if event == sg.WINDOW_CLOSED:
             break
+        if event == "Settings":
+            show_settings_window()
         if event == "Convert":
             try:
                 domain_str = values["-INPUT-"].strip()
