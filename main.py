@@ -363,7 +363,15 @@ def parse_domain(domain_str: str) -> list:
 
 
 # System field labels for Odoo-aware output (ODOO-01)
-SYSTEM_FIELD_LABELS = {}
+SYSTEM_FIELD_LABELS = {
+    'create_uid': 'Created By',
+    'write_uid': 'Last Updated By',
+    'create_date': 'Created On',
+    'write_date': 'Last Updated On',
+    'active': 'Active',
+    'id': 'ID',
+    'display_name': 'Display Name',
+}
 
 
 def get_system_field_label(field_name: str) -> str | None:
@@ -375,11 +383,21 @@ def get_system_field_label(field_name: str) -> str | None:
     Returns:
         UI label if it's a system field, None otherwise
     """
+    if not field_name:
+        return None
     return SYSTEM_FIELD_LABELS.get(field_name)
 
 
 def humanize_dynamic_ref(ref: 'DynamicRef') -> str:
-    """Humanize a DynamicRef for pseudocode output.
+    """Humanize a DynamicRef for pseudocode output (ODOO-02).
+
+    Converts user references to human-readable form:
+    - user.id -> "current user"
+    - user.partner_id.id -> "current user's Partner"
+    - user.groups_id.ids -> "current user's Groups"
+    - user.company_ids -> "current user's Companies"
+
+    Non-user references are returned unchanged.
 
     Args:
         ref: A DynamicRef object
@@ -387,6 +405,40 @@ def humanize_dynamic_ref(ref: 'DynamicRef') -> str:
     Returns:
         Human-readable string for the reference
     """
+    name = ref.name
+
+    # Only handle user.* references
+    if not name.startswith('user.'):
+        return str(ref)
+
+    # Handle user.id specially
+    if name == 'user.id':
+        return "current user"
+
+    # Extract the path after "user."
+    rest = name[5:]  # Skip "user."
+
+    # Split by dots
+    parts = rest.split('.')
+
+    # Handle various patterns
+    if len(parts) >= 1:
+        # Get the first segment (e.g., partner_id, company_ids, groups_id)
+        first_segment = parts[0]
+
+        # If ends with .id or .ids, we're accessing a relation's ID
+        if len(parts) >= 2 and parts[-1] in ('id', 'ids'):
+            # Use the segment before the final .id/.ids
+            # e.g., user.partner_id.id -> Partner
+            # e.g., user.groups_id.ids -> Groups
+            base_segment = parts[-2] if len(parts) >= 2 else parts[0]
+            humanized = _humanize_segment(base_segment)
+            return f"current user's {humanized}"
+        else:
+            # Direct access like user.partner_id, user.company_ids
+            humanized = _humanize_segment(first_segment)
+            return f"current user's {humanized}"
+
     return str(ref)
 
 
@@ -615,33 +667,79 @@ def convert_odoo_domain_to_pseudocode(domain):
     logical_operators = {'&', '|', '!'}
 
     def format_value(value):
-        """Format a value for pseudocode output."""
+        """Format a value for pseudocode output (VALUE-01)."""
         if isinstance(value, DynamicRef):
-            return str(value)  # Dynamic references output as-is
+            return humanize_dynamic_ref(value)  # Use Odoo-aware humanization
         elif isinstance(value, str):
             return f'"{value}"'
         elif isinstance(value, list):
             formatted_items = ', '.join(format_value(v) for v in value)
             return f"[{formatted_items}]"
         elif value is None:
-            return 'None'
+            return 'Not set'  # VALUE-01: Humanize None
         elif value is True:
             return 'True'
         elif value is False:
-            return 'False'
+            return 'Not set'  # VALUE-01: Humanize False
         else:
             return str(value)
+
+    def is_tautology(condition):
+        """Check if condition is a tautology pattern (VALUE-02, VALUE-03).
+
+        Returns:
+            - "always_true" for (1, '=', 1) patterns
+            - "always_false" for (0, '=', 1) patterns
+            - None for regular conditions
+        """
+        field, operator, value = condition
+        if operator != '=':
+            return None
+
+        # Normalize to comparable values (handle both int and str)
+        def normalize(v):
+            if isinstance(v, str) and v in ('0', '1'):
+                return int(v)
+            return v
+
+        norm_field = normalize(field)
+        norm_value = normalize(value)
+
+        # (1, '=', 1) or ('1', '=', '1') -> always true
+        if norm_field == 1 and norm_value == 1:
+            return "always_true"
+
+        # (0, '=', 1) or ('0', '=', '1') -> always false
+        if norm_field == 0 and norm_value == 1:
+            return "always_false"
+
+        return None
 
     def process_condition(condition):
         """Convert a condition tuple to a pseudocode string."""
         field, operator, value = condition
+
+        # Check for tautology patterns first (VALUE-02, VALUE-03)
+        tautology = is_tautology(condition)
+        if tautology == "always_true":
+            return "Always True (all records)"
+        elif tautology == "always_false":
+            return "Always False (no records)"
+
         if operator == '=?':
             if value in (None, False):
                 return 'Always True (ignored condition)'
             else:
                 operator = '='
-        # Humanize the field name for readable output
-        humanized_field = humanize_field(field)
+
+        # For regular conditions, field should be a string
+        # Check system field labels first, fall back to humanize_field
+        if isinstance(field, str):
+            system_label = get_system_field_label(field)
+            humanized_field = system_label if system_label else humanize_field(field)
+        else:
+            humanized_field = str(field)
+
         formatted_value = format_value(value)
         op_str = operator_dict.get(operator, operator)
         return f"({humanized_field} {op_str} {formatted_value})"
