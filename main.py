@@ -500,6 +500,88 @@ class OdooConnection:
         except Exception as e:
             return False, f"Error retrieving databases: {e}"
 
+    def resolve_model_name(self, model_input: str) -> tuple[bool, str, str | None]:
+        """Resolve a model input to its technical name.
+
+        Accepts either:
+        - Technical name: 'helpdesk.ticket.report.analysis'
+        - Display name: 'Ticket Analysis'
+
+        First tries the input as a technical name. If that fails,
+        searches ir.model by name (display name) to find the technical model.
+
+        Args:
+            model_input: Technical name or display name of the model
+
+        Returns:
+            Tuple of (success, technical_name, error):
+            - (True, 'model.name', None) if resolved
+            - (False, '', error_message) if not found
+        """
+        if not self.uid:
+            return False, '', "Not authenticated. Call authenticate() first."
+
+        model_input = model_input.strip()
+
+        # First, try as technical name by attempting to get fields
+        try:
+            models = xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/object')
+            # Try calling fields_get - if model exists, it will work
+            models.execute_kw(
+                self.database, self.uid, self.password,
+                model_input, 'fields_get',
+                [],
+                {'attributes': ['type'], 'limit': 1}
+            )
+            # If we get here, the model exists as a technical name
+            return True, model_input, None
+        except xmlrpc.client.Fault:
+            # Model not found as technical name, try display name lookup
+            pass
+        except Exception as e:
+            return False, '', f"Error checking model: {e}"
+
+        # Search ir.model by display name
+        try:
+            models = xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/object')
+            # Search for models with matching name (case-insensitive)
+            model_ids = models.execute_kw(
+                self.database, self.uid, self.password,
+                'ir.model', 'search',
+                [[['name', 'ilike', model_input]]],
+                {'limit': 10}
+            )
+
+            if not model_ids:
+                return False, '', f"Model '{model_input}' not found (tried as technical name and display name)"
+
+            # Get model info
+            model_records = models.execute_kw(
+                self.database, self.uid, self.password,
+                'ir.model', 'read',
+                [model_ids],
+                {'fields': ['model', 'name']}
+            )
+
+            # Try exact match first
+            for record in model_records:
+                if record['name'].lower() == model_input.lower():
+                    return True, record['model'], None
+
+            # If no exact match, return first result with a note
+            if len(model_records) == 1:
+                return True, model_records[0]['model'], None
+            else:
+                # Multiple matches - list them
+                options = [f"  - {r['name']} ({r['model']})" for r in model_records[:5]]
+                options_str = '\n'.join(options)
+                return False, '', f"Multiple models match '{model_input}':\n{options_str}\nPlease use the technical name."
+
+        except xmlrpc.client.Fault as e:
+            return False, '', f"Error searching models: {e.faultString}"
+        except Exception as e:
+            return False, '', f"Error searching models: {e}"
+
     def get_fields(self, model_name: str) -> dict:
         """Get field definitions for a model from Odoo.
 
@@ -1351,17 +1433,19 @@ def extract_fields_from_domain(domain: list) -> list[str]:
     return list(fields)
 
 
-def validate_domain_fields(model_name: str, domain: list) -> list[tuple[str, str]]:
+def validate_domain_fields(model_input: str, domain: list) -> list[tuple[str, str]]:
     """Validate all fields, operators, and values in a domain against an Odoo model.
 
     Performs comprehensive validation including:
+    - Model name resolution (accepts technical name or display name)
     - Field existence on the model
     - Operator compatibility with field types
     - Value type matching with field types
     - Dotted path traversal
 
     Args:
-        model_name: The Odoo model to validate against
+        model_input: The Odoo model to validate against (technical name like
+                    'helpdesk.ticket' or display name like 'Helpdesk Ticket')
         domain: Parsed domain list
 
     Returns:
@@ -1384,8 +1468,19 @@ def validate_domain_fields(model_name: str, domain: list) -> list[tuple[str, str
     if not uid:
         return [('error', "Authentication failed. Check credentials in Settings.")]
 
+    # Resolve model name (accepts technical name or display name)
+    success, model_name, error = conn.resolve_model_name(model_input)
+    if not success:
+        return [('error', error)]
+
+    # Add info if model was resolved from display name
+    results = []
+    if model_name != model_input.strip():
+        results.append(('info', f"Resolved '{model_input}' → {model_name}"))
+
     # Use comprehensive domain validation
-    return conn.validate_domain(model_name, domain)
+    results.extend(conn.validate_domain(model_name, domain))
+    return results
 
 
 def convert_odoo_domain_to_python_gui():
@@ -1400,7 +1495,7 @@ def convert_odoo_domain_to_python_gui():
             )
         ],
         [sg.Text("Model (for validation):", size=(20, 1)),
-         sg.Input(key="-MODEL-", size=(30, 1), tooltip="e.g., res.partner")],
+         sg.Input(key="-MODEL-", size=(30, 1), tooltip="Technical name (res.partner) or display name (Contact)")],
         [sg.Multiline(size=(100, 10), key="-INPUT-")],
         [sg.Radio('Python Code', 'RADIO1', default=True, key='-RADIO_PY-'),
          sg.Radio('Pseudocode', 'RADIO1', key='-RADIO_PSEUDO-')],
