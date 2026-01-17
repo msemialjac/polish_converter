@@ -116,7 +116,7 @@ class TestHumanizeFieldIntegration:
         """Pseudocode output strips _id suffix."""
         domain = parse_domain("[('company_id', '=', 1)]")
         result = convert_odoo_domain_to_pseudocode(domain)
-        assert "Company is equal to 1" in result
+        assert "Company equals 1" in result
         # Should not contain raw "company_id"
         assert "company_id" not in result
 
