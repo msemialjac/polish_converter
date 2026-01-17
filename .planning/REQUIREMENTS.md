@@ -22,14 +22,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Odoo-Aware Mappings
 
-- [ ] **ODOO-01**: Common system fields map to UI labels (`create_uid` → "Created By", `write_uid` → "Last Updated By", `create_date` → "Created On", `write_date` → "Last Updated On", `active` → "Active")
-- [ ] **ODOO-02**: User references render as human-readable (`user.id` → "current user", `user.partner_id.id` → "current user's Partner", `user.groups_id.ids` → "current user's Groups")
+- [x] **ODOO-01**: Common system fields map to UI labels (`create_uid` → "Created By", `write_uid` → "Last Updated By", `create_date` → "Created On", `write_date` → "Last Updated On", `active` → "Active")
+- [x] **ODOO-02**: User references render as human-readable (`user.id` → "current user", `user.partner_id.id` → "current user's Partner", `user.groups_id.ids` → "current user's Groups")
 
 ### Value Humanization
 
-- [ ] **VALUE-01**: `False` and `None` render as "Not set" in pseudocode
-- [ ] **VALUE-02**: `(1, '=', 1)` pattern renders as "Always True (all records)"
-- [ ] **VALUE-03**: `(0, '=', 1)` pattern renders as "Always False (no records)"
+- [x] **VALUE-01**: `False` and `None` render as "Not set" in pseudocode
+- [x] **VALUE-02**: `(1, '=', 1)` pattern renders as "Always True (all records)"
+- [x] **VALUE-03**: `(0, '=', 1)` pattern renders as "Always False (no records)"
 
 ### Domain Validation
 
@@ -75,11 +75,11 @@ Which phases cover which requirements. Updated by create-roadmap.
 | FIELD-02 | Phase 2 | Complete |
 | FIELD-03 | Phase 2 | Complete |
 | FIELD-04 | Phase 2 | Complete |
-| ODOO-01 | Phase 3 | Pending |
-| ODOO-02 | Phase 3 | Pending |
-| VALUE-01 | Phase 3 | Pending |
-| VALUE-02 | Phase 3 | Pending |
-| VALUE-03 | Phase 3 | Pending |
+| ODOO-01 | Phase 3 | Complete |
+| ODOO-02 | Phase 3 | Complete |
+| VALUE-01 | Phase 3 | Complete |
+| VALUE-02 | Phase 3 | Complete |
+| VALUE-03 | Phase 3 | Complete |
 | VALID-01 | Phase 5 | Pending |
 | VALID-02 | Phase 5 | Pending |
 | VALID-03 | Phase 5 | Pending |
