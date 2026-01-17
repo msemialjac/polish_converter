@@ -362,6 +362,96 @@ def parse_domain(domain_str: str) -> list:
     return parser.parse()
 
 
+def _humanize_segment(segment: str) -> str:
+    """Humanize a single path segment.
+
+    Handles:
+    - Strip _id suffix (singularize)
+    - Strip _ids suffix (pluralize)
+    - Replace underscores with spaces
+    - Apply title case
+
+    Args:
+        segment: A single field name segment (no dots)
+
+    Returns:
+        Humanized segment string
+    """
+    if not segment:
+        return ""
+
+    # Handle _ids suffix (strip and pluralize)
+    if segment.endswith('_ids'):
+        base = segment[:-4]  # Remove _ids
+        # Humanize the base
+        humanized = base.replace('_', ' ').title()
+        # Simple pluralization: handle 'y' -> 'ies' for company
+        if humanized.lower().endswith('y') and len(humanized) > 1:
+            # Check if it's a consonant + y pattern (company -> companies)
+            if len(humanized) >= 2 and humanized[-2].lower() not in 'aeiou':
+                return humanized[:-1] + 'ies'
+        return humanized + 's'
+
+    # Handle _id suffix (strip, singular)
+    if segment.endswith('_id') and len(segment) > 3:
+        base = segment[:-3]  # Remove _id
+        return base.replace('_', ' ').title()
+
+    # Regular field: replace underscores and title case
+    # Filter out empty parts from multiple underscores
+    parts = [p for p in segment.split('_') if p]
+    return ' '.join(p.title() for p in parts)
+
+
+def humanize_field(field_name: str) -> str:
+    """Convert a technical field name to a human-readable label.
+
+    Handles:
+    - Snake_case to Title Case (FIELD-01)
+    - Strip _id suffix (FIELD-02)
+    - Strip _ids suffix (FIELD-03)
+    - Dotted paths with possessive form (FIELD-04)
+
+    Args:
+        field_name: Technical field name (e.g., 'privacy_visibility', 'project_id.name')
+
+    Returns:
+        Human-readable label (e.g., 'Privacy Visibility', "Project's Name")
+
+    Examples:
+        >>> humanize_field('privacy_visibility')
+        'Privacy Visibility'
+        >>> humanize_field('company_id')
+        'Company'
+        >>> humanize_field('group_ids')
+        'Groups'
+        >>> humanize_field('project_id.name')
+        "Project's Name"
+    """
+    if not field_name:
+        return ""
+
+    # Split on dots for path handling
+    segments = field_name.split('.')
+
+    if len(segments) == 1:
+        # Single segment - just humanize it
+        return _humanize_segment(segments[0])
+
+    # Multiple segments - use possessive form
+    # All segments except last get 's appended
+    humanized_parts = []
+    for i, segment in enumerate(segments):
+        humanized = _humanize_segment(segment)
+        if i < len(segments) - 1:
+            # Add possessive for all but last segment
+            humanized_parts.append(humanized + "'s")
+        else:
+            humanized_parts.append(humanized)
+
+    return ' '.join(humanized_parts)
+
+
 def convert_odoo_domain_to_python(domain):
     """Convert an Odoo domain expression to a Python expression.
 
@@ -522,9 +612,11 @@ def convert_odoo_domain_to_pseudocode(domain):
                 return 'Always True (ignored condition)'
             else:
                 operator = '='
+        # Humanize the field name for readable output
+        humanized_field = humanize_field(field)
         formatted_value = format_value(value)
         op_str = operator_dict.get(operator, operator)
-        return f"({field} {op_str} {formatted_value})"
+        return f"({humanized_field} {op_str} {formatted_value})"
 
     def process_subexpression(subexpression):
         """Convert a subexpression list to a pseudocode string."""
