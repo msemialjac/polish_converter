@@ -9,9 +9,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Parsing
 
-- [ ] **PARSE-01**: Parser handles domains containing dynamic references (`user.id`, `user.partner_id.id`, `company_ids`)
-- [ ] **PARSE-02**: Parser handles domains containing dotted field paths (`account_online_link_id.company_id`)
-- [ ] **PARSE-03**: Parser handles multi-line domain strings gracefully
+- [x] **PARSE-01**: Parser handles domains containing dynamic references (`user.id`, `user.partner_id.id`, `company_ids`)
+- [x] **PARSE-02**: Parser handles domains containing dotted field paths (`account_online_link_id.company_id`)
+- [x] **PARSE-03**: Parser handles multi-line domain strings gracefully
 
 ### Field Humanization
 
@@ -68,9 +68,9 @@ Which phases cover which requirements. Updated by create-roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PARSE-01 | Phase 1 | Pending |
-| PARSE-02 | Phase 1 | Pending |
-| PARSE-03 | Phase 1 | Pending |
+| PARSE-01 | Phase 1 | Complete |
+| PARSE-02 | Phase 1 | Complete |
+| PARSE-03 | Phase 1 | Complete |
 | FIELD-01 | Phase 2 | Pending |
 | FIELD-02 | Phase 2 | Pending |
 | FIELD-03 | Phase 2 | Pending |
