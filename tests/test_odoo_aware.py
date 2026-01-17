@@ -9,13 +9,8 @@ These tests verify:
 """
 
 import pytest
-import sys
-import os
 
-# Add parent directory to path to import main
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from main import (
+from polish_converter import (
     get_system_field_label,
     humanize_dynamic_ref,
     DynamicRef,

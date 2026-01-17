@@ -6,18 +6,13 @@ These tests verify that convert_odoo_domain_to_python() correctly:
 """
 
 import pytest
-import sys
-import os
 
-# Add parent directory to path to import main
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from main import (
+from polish_converter import (
     convert_odoo_domain_to_python,
     parse_domain,
     DynamicRef,
-    to_readable_text,
 )
+from polish_converter.humanizer import to_readable_text
 
 
 class TestToReadableText:

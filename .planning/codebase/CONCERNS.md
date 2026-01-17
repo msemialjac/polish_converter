@@ -1,32 +1,29 @@
 # Codebase Concerns
 
 **Analysis Date:** 2026-01-17
+**Last Updated:** 2026-01-17
 
 ## Tech Debt
 
-**Significant Code Duplication:**
+**~~Significant Code Duplication:~~ RESOLVED**
 - Issue: Two nearly identical converter functions (97 lines each)
-- Files: `main.py` lines 6-104 and lines 107-204
-- Why: Rapid prototyping without refactoring
-- Impact: Bug fixes must be applied twice, DRY principle violated
-- Fix approach: Extract shared logic into parameterized helper or use strategy pattern
+- Resolution: Refactored into `polish_converter/converter.py` with shared `_convert_domain()` function
+  that accepts an `OutputFormat` enum parameter. Eliminated ~90 lines of duplicate code.
+- Fixed in: Refactoring commit (package structure)
 
-**Unused Import:**
+**~~Unused Import:~~ RESOLVED**
 - Issue: `black` module imported but never used
-- File: `main.py` line 3
-- Why: Likely planned for code formatting feature
-- Impact: Unnecessary dependency, minor attack surface increase
-- Fix approach: Remove import and dependency, or implement intended feature
+- Resolution: Removed from new package structure. `main.py` is now a thin compatibility wrapper.
+- Fixed in: Refactoring commit (package structure)
 
 ## Known Bugs
 
-**Silent Failure on Malformed Domains:**
+**~~Silent Failure on Malformed Domains:~~ RESOLVED**
 - Symptoms: Produces incorrect results without warning for domains with missing operands
-- Trigger: Binary operator with only one operand available
-- Files: `main.py` lines 88-91, 189-192
-- Workaround: None - user unaware of malformed input
-- Root cause: `pass` statement instead of error handling when stack has insufficient operands
-- Fix: Raise descriptive error or return warning message
+- Resolution: Added warning collection in `_convert_domain()`. When binary operators have
+  insufficient operands, warnings are appended to output. Added `MalformedDomainError` exception
+  class for explicit error handling.
+- Fixed in: `polish_converter/converter.py`
 
 ## Security Considerations
 
@@ -52,18 +49,17 @@
 ## Fragile Areas
 
 **GUI Event Handler:**
-- File: `main.py` lines 229-244
+- File: `polish_converter/gui.py`
 - Why fragile: Broad exception handling masks specific errors
 - Common failures: Silent failure, unhelpful error messages
 - Safe modification: Add specific exception handlers with meaningful messages
-- Test coverage: No tests exist
+- Test coverage: No direct GUI tests (stable simple UI - low priority)
 
-**Operator Stack Processing:**
-- File: `main.py` lines 72-104
+**Operator Stack Processing:** (Improved)
+- File: `polish_converter/converter.py` - `_convert_domain()` function
 - Why fragile: Complex state management with stack operations
-- Common failures: Incorrect results for edge cases
-- Safe modification: Add comprehensive unit tests first
-- Test coverage: None
+- Improvement: Now produces warnings for malformed domains instead of silent failures
+- Test coverage: Good - 127 tests including edge cases
 
 ## Scaling Limits
 
@@ -87,31 +83,34 @@
 
 ## Missing Critical Features
 
-**No CLI Interface:**
+**~~No CLI Interface:~~ RESOLVED**
 - Problem: Conversion functions only accessible via GUI
-- Current workaround: Copy functions to use programmatically
-- Blocks: Cannot use in scripts, CI/CD, or automation
-- Implementation complexity: Low - add click/argparse wrapper
+- Resolution: Added comprehensive CLI using click in `polish_converter/cli.py`:
+  - `python -m polish_converter convert` - Convert domains (supports --python, -f file)
+  - `python -m polish_converter validate` - Validate against Odoo instance
+  - `python -m polish_converter gui` - Launch GUI
+  - Supports reading from stdin, files, or arguments
+- Fixed in: `polish_converter/cli.py`
 
-**No Test Suite:**
+**~~No Test Suite:~~ RESOLVED**
 - Problem: Zero test coverage for critical conversion logic
-- Current workaround: Manual testing only
-- Blocks: Safe refactoring, regression prevention
-- Implementation complexity: Low - pure functions are easy to test
+- Resolution: Tests already exist in `tests/` with 127 passing tests covering:
+  - Parser tests (`test_parser.py`)
+  - Humanization tests (`test_humanization.py`)
+  - Odoo-aware output tests (`test_odoo_aware.py`)
+  - Python output tests (`test_python_output.py`)
+- Current status: 127 tests, all passing
 
 ## Test Coverage Gaps
 
-**Conversion Functions:**
-- What's not tested: `convert_odoo_domain_to_python()`, `convert_odoo_domain_to_pseudocode()`
-- Risk: Regressions in domain conversion logic
-- Priority: High
-- Difficulty to test: Low - pure functions with clear input/output
+**~~Conversion Functions:~~ RESOLVED**
+- Now tested: `convert_odoo_domain_to_python()`, `convert_odoo_domain_to_pseudocode()`
+- Coverage: Good - 127 tests in `tests/` directory
+- Tested in: `test_python_output.py`, `test_humanization.py`, `test_odoo_aware.py`
 
-**Edge Cases:**
-- What's not tested: Empty domains, nested structures, malformed operators
-- Risk: Silent incorrect behavior
-- Priority: High
-- Difficulty to test: Low
+**~~Edge Cases:~~ RESOLVED**
+- Now tested: Empty domains, nested structures, special values, tautology patterns
+- Coverage: Good - comprehensive edge case tests in `test_parser.py`
 
 **GUI Functionality:**
 - What's not tested: Event handling, user interaction
@@ -119,7 +118,14 @@
 - Priority: Low (stable simple UI)
 - Difficulty to test: Medium - requires GUI testing framework
 
+**CLI Functionality:**
+- What's not tested: CLI argument parsing, file input, stdin handling
+- Risk: CLI regressions
+- Priority: Medium
+- Difficulty to test: Low - use click's testing utilities
+
 ---
 
 *Concerns audit: 2026-01-17*
+*Last updated: 2026-01-17 (after package refactoring)*
 *Update as issues are fixed or new ones discovered*

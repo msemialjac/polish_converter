@@ -8,13 +8,8 @@ These tests verify that humanize_field() correctly:
 """
 
 import pytest
-import sys
-import os
 
-# Add parent directory to path to import main
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from main import humanize_field, convert_odoo_domain_to_pseudocode, parse_domain
+from polish_converter import humanize_field, convert_odoo_domain_to_pseudocode, parse_domain
 
 
 class TestHumanizeFieldBasic:
