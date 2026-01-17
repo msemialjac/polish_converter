@@ -1,6 +1,7 @@
 import FreeSimpleGUI as sg
 import ast
 import black
+import xmlrpc.client
 from enum import Enum, auto
 from typing import Any
 
@@ -360,6 +361,112 @@ def parse_domain(domain_str: str) -> list:
     tokens = tokenizer.tokenize()
     parser = DomainParser(tokens)
     return parser.parse()
+
+
+class OdooConnection:
+    """Client for connecting to Odoo via XML-RPC API.
+
+    Provides methods to test connectivity, authenticate, and retrieve
+    database information from an Odoo instance.
+
+    Attributes:
+        url: Base URL of the Odoo instance (e.g., 'http://localhost:8069')
+        database: Database name to connect to
+        username: Login username
+        password: Login password
+        uid: User ID after successful authentication (None until authenticated)
+    """
+
+    def __init__(self, url: str, database: str, username: str, password: str):
+        """Initialize OdooConnection with connection parameters.
+
+        Args:
+            url: Base URL of the Odoo instance (e.g., 'http://localhost:8069')
+            database: Database name to connect to
+            username: Login username
+            password: Login password
+        """
+        self.url = url.rstrip('/')  # Remove trailing slash if present
+        self.database = database
+        self.username = username
+        self.password = password
+        self.uid: int | None = None
+
+    def test_connection(self) -> tuple[bool, str]:
+        """Test if the Odoo server is reachable.
+
+        Attempts to connect to the XML-RPC common endpoint and call version().
+
+        Returns:
+            Tuple of (success, message):
+            - (True, version_info) if connection successful
+            - (False, error_message) if connection failed
+        """
+        try:
+            common = xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/common')
+            version_info = common.version()
+            server_version = version_info.get('server_version', 'unknown')
+            return True, f"Connected to Odoo {server_version}"
+        except ConnectionRefusedError:
+            return False, f"Cannot connect to {self.url}"
+        except OSError as e:
+            return False, f"Connection error: {e}"
+        except xmlrpc.client.Fault as e:
+            return False, f"XML-RPC error: {e.faultString}"
+        except Exception as e:
+            return False, f"Unexpected error: {e}"
+
+    def authenticate(self) -> int | None:
+        """Authenticate with the Odoo instance.
+
+        Attempts to authenticate using the stored credentials. On success,
+        stores the user ID (uid) for later API calls.
+
+        Returns:
+            User ID (uid) on success, None on failure
+        """
+        try:
+            common = xmlrpc.client.ServerProxy(f'{self.url}/xmlrpc/2/common')
+            uid = common.authenticate(self.database, self.username, self.password, {})
+            if uid:
+                self.uid = uid
+                return uid
+            return None
+        except ConnectionRefusedError:
+            return None
+        except xmlrpc.client.Fault:
+            return None
+        except Exception:
+            return None
+
+    @classmethod
+    def get_databases(cls, url: str) -> tuple[bool, list[str] | str]:
+        """Get list of available databases from an Odoo instance.
+
+        This is a class method since it doesn't require authentication.
+
+        Args:
+            url: Base URL of the Odoo instance
+
+        Returns:
+            Tuple of (success, result):
+            - (True, [database_names]) if successful
+            - (False, error_message) if failed
+        """
+        url = url.rstrip('/')
+        try:
+            db = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/db')
+            databases = db.list()
+            return True, databases
+        except ConnectionRefusedError:
+            return False, f"Cannot connect to {url}"
+        except xmlrpc.client.Fault as e:
+            # Some Odoo instances disable database listing for security
+            if 'Access Denied' in str(e.faultString):
+                return False, "Database listing disabled on this server"
+            return False, f"XML-RPC error: {e.faultString}"
+        except Exception as e:
+            return False, f"Error retrieving databases: {e}"
 
 
 # System field labels for Odoo-aware output (ODOO-01)
